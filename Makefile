@@ -2,12 +2,15 @@
 NAME = madharjan/docker-mail
 VERSION = 2.11-2.2.9
 
-.PHONY: all build gen_users run fixtures tests tag_latest release
+.PHONY: all build build_test gen_users run fixtures tests tag_latest release
 
 all: build
 
 build:
-	docker build -t $(NAME):$(VERSION) --rm .
+	docker build  -t $(NAME):$(VERSION) --rm .
+
+build_test:
+	docker build --build-arg DEBUG=true -t $(NAME):$(VERSION) --rm .
 
 gen_users:
 	docker run --rm \
@@ -22,12 +25,48 @@ gen_users:
 
 run:
 	docker run -d --name mail \
+		-e ENABLE_SIEVE=1 \
+		-e SA_TAG=1.0 \
+		-e SA_TAG2=2.0 \
+		-e SA_KILL=3.0\
+		-e SASL_PASSWD="external-domain.com username:password" \
+		-v "`pwd`/test/config":/tmp/config \
+		-v "`pwd`/test/":/tmp/test \
+		-h mail.my-domain.com -t $(NAME):$(VERSION) /sbin/my_init
+	sleep 5
+	docker run -d --name mail_pop3 \
+		-e ENABLE_POP3=1 \
+		-e SSL_TYPE=certbot \
 		-v "`pwd`/test/config":/tmp/config \
 		-v "`pwd`/test/":/tmp/test \
 		-v "`pwd`/test/certbot":/etc/certbot/live \
-		-e SSL_TYPE=certbot \
-		-e SASL_PASSWD="external-domain.com username:password" \
 		-h mail.my-domain.com -t $(NAME):$(VERSION) /sbin/my_init
+	sleep 5
+	docker run -d --name mail_smtponly \
+		-e SMTP_ONLY=1 \
+		-v "`pwd`/test/config":/tmp/config \
+		-v "`pwd`/test/":/tmp/test \
+		-h mail.my-domain.com -t $(NAME):$(VERSION) /sbin/my_init
+	sleep 5
+	docker run -d --name mail_fail2ban \
+		-e ENABLE_FAIL2BAN=1 \
+		--cap-add=NET_ADMIN \
+		-v "`pwd`/test/config":/tmp/config \
+		-v "`pwd`/test/":/tmp/test \
+		-h mail.my-domain.com -t $(NAME):$(VERSION) /sbin/my_init
+	sleep 5
+	docker run -d --name mail_disable_spamassassin \
+		-e DISABLE_SPAMASSASIN=1 \
+		-v "`pwd`/test/config":/tmp/config \
+		-v "`pwd`/test/":/tmp/test \
+		-h mail.my-domain.com -t $(NAME):$(VERSION) /sbin/my_init
+	sleep 5
+	docker run -d --name mail_disable_clamav \
+		-e DISABLE_CLAMAV=1 \
+		-v "`pwd`/test/config":/tmp/config \
+		-v "`pwd`/test/":/tmp/test \
+		-h mail.my-domain.com -t $(NAME):$(VERSION) /sbin/my_init
+		sleep 5
 
 fixtures:
 			# Setup sieve & create filtering folder (INBOX/spam)
@@ -53,8 +92,8 @@ tests:
 	./bats/bin/bats test/tests.bats
 
 clean:
-	docker stop mail
-	docker rm mail
+	docker stop mail mail_pop3 mail_smtponly mail_fail2ban mail_disable_spamassassin mail_disable_clamav
+	docker rm mail mail_pop3 mail_smtponly mail_fail2ban mail_disable_spamassassin mail_disable_clamav
 
 tag_latest:
 	docker tag $(NAME):$(VERSION) $(NAME):latest

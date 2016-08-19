@@ -1,12 +1,16 @@
 #!/bin/bash
 set -e
-source /build/config/buildconfig
-set -x
+export LC_ALL=C
+export DEBIAN_FRONTEND=noninteractive
+
+if [ "$DEBUG" == true ]; then
+  set -x
+fi
 
 POSTFIX_BUILD_PATH=/build/services/postfix
 
 ## Install postfix
-$minimal_apt_get_install postfix postfix-ldap ssl-cert
+apt-get install -y --no-install-recommends postfix postfix-ldap ssl-cert
 
 mkdir -p /etc/service/postfix
 cp ${POSTFIX_BUILD_PATH}/postfix.runit /etc/service/postfix/run

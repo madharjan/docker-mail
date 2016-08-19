@@ -9,7 +9,7 @@ $vm_proxy = true
 $vm_guest = true
 #$network_prefix = "192.168.56."
 #$ip_start = 100
-#$forwarded_ports = {80,8080}
+#$forwarded_ports = {80 => 8080}
 
 CLOUD_META_PATH = "./cloud-init/meta-data"
 CLOUD_CONF_PATH = "./cloud-init/user-data"
@@ -66,7 +66,7 @@ Vagrant.configure(2) do |config|
       config.proxy.https = ENV["http_proxy"] || ""
       config.proxy.no_proxy = ENV["no_proxy"] || ""
   end
-  
+
   if Vagrant.has_plugin?("vagrant-vbguest") then
     config.vbguest.auto_update = $vm_guest
   end

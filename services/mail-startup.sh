@@ -21,6 +21,10 @@ if [ -f /tmp/config/postfix-accounts.cf ]; then
   chown dovecot:dovecot /etc/dovecot/userdb
   chmod 640 /etc/dovecot/userdb
 
+  cp -a /usr/share/dovecot/protocols.d /etc/dovecot
+  mv /etc/dovecot/protocols.d/pop3d.protocol /etc/dovecot/protocols.d/pop3d.protocol.disabe
+  mv /etc/dovecot/protocols.d/managesieved.protocol /etc/dovecot/protocols.d/managesieved.protocol.disabe
+
   # Creating users
   # 'pass' is encrypted
   while IFS=$'|' read login pass

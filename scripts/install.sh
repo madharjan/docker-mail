@@ -1,7 +1,11 @@
 #!/bin/bash
 set -e
-source /build/config/buildconfig
-set -x
+export LC_ALL=C
+export DEBIAN_FRONTEND=noninteractive
+
+if [ "$DEBUG" == true ]; then
+  set -x
+fi
 
 POSTFIX_CONFIG_PATH=/build/config/postfix
 DOVECOT_CONFIG_PATH=/build/config/dovecot
@@ -26,5 +30,15 @@ chmod 750 /etc/my_init.d/mail-startup.sh
 
 cp /build/bin/addmailuser /usr/local/bin
 cp /build/bin/delmailuser /usr/local/bin
+cp /build/bin/generate-dkim-config /usr/local/bin
 chmod 750 /usr/local/bin/addmailuser
 chmod 750 /usr/local/bin/delmailuser
+chmod 750 /usr/local/bin/generate-dkim-config
+
+## Install CertBot
+wget https://dl.eff.org/certbot-auto
+cp certbot-auto /usr/local/sbin
+chmod a+x /usr/local/sbin/certbot-auto
+
+#/usr/local/sbin/certbot-auto --non-interactive --os-packages-only
+/usr/local/sbin/certbot-auto -t --non-interactive renew
