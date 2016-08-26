@@ -18,4 +18,6 @@ chmod 750 /etc/service/clamav/run
 mkdir -p /var/run/clamav
 chown clamav:clamav /var/run/clamav
 
+(crontab -l 2>/dev/null; echo "0 0,6,12,18 * * * /usr/bin/freshclam --quiet") | sort - | uniq - | crontab -
+
 ## Configure logrotate.

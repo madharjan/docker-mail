@@ -9,6 +9,7 @@ fi
 
 POSTFIX_CONFIG_PATH=/build/config/postfix
 DOVECOT_CONFIG_PATH=/build/config/dovecot
+FAIL2BAN_CONFIG_PATH=/build/config/fail2ban
 
 apt-get update
 apt-get upgrade -y --no-install-recommends
@@ -41,6 +42,9 @@ cp ${DOVECOT_CONFIG_PATH}/auth-*.conf.ext /etc/dovecot/conf.d
 
 ## Install Fail2Ban and runit service
 /build/services/fail2ban/fail2ban.sh
+
+cp ${DOVECOT_CONFIG_PATH}/jail.conf /etc/fail2ban/jail.conf
+cp ${DOVECOT_CONFIG_PATH}/filter.d/dovecot.conf /etc/fail2bian/filter.d/dovecot.conf
 
 mkdir -p /etc/my_init.d
 cp /build/services/mail-startup.sh /etc/my_init.d
