@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -e
+
+exec /usr/sbin/amavisd-new -u amavis -g amavis foreground

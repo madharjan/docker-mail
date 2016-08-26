@@ -3,7 +3,7 @@
 
 $vm_name = "ubuntu-14.04-mail"
 $vm_gui = false
-$vm_memory = 768
+$vm_memory = 1536
 $vm_cpus = 1
 $vm_proxy = true
 $vm_guest = true

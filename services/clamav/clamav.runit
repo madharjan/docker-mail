@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+if [ ! -e "/var/lib/clamav/main.cvd" ] && [ ! -e "/var/lib/clamav/daily.cvd" ]; then
+  /usr/bin/freshclam
+fi
+
+exec /usr/sbin/clamd

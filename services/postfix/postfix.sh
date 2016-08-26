@@ -10,7 +10,7 @@ fi
 POSTFIX_BUILD_PATH=/build/services/postfix
 
 ## Install postfix
-apt-get install -y --no-install-recommends postfix postfix-ldap ssl-cert
+apt-get install -y --no-install-recommends postfix ssl-cert
 
 mkdir -p /etc/service/postfix
 cp ${POSTFIX_BUILD_PATH}/postfix.runit /etc/service/postfix/run

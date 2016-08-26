@@ -134,7 +134,7 @@ docker rm mail
 docker run -d -t \
   -e ENABLE_POP3=1 \
   -e ENABLE_FAIL2BAN=1 \
-  -e ENABLE_SIEVE=1 \
+  -e ENABLE_MANAGESIEVE=1 \
   -e SA_TAG=2.0 \
   -e SA_TAG2=6.31 \
   -e SA_KILL=6.31\

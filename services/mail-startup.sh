@@ -1,11 +1,5 @@
 #!/bin/bash
 
-die () {
-  echo >&2 "$@"
-  exit 1
-}
-
-
 # Users
 if [ -f /tmp/config/postfix-accounts.cf ]; then
   echo "Configuring Postfix & Dovecot"
@@ -21,9 +15,10 @@ if [ -f /tmp/config/postfix-accounts.cf ]; then
   chown dovecot:dovecot /etc/dovecot/userdb
   chmod 640 /etc/dovecot/userdb
 
+  # Disable now, enabled later in the script if requested
   cp -a /usr/share/dovecot/protocols.d /etc/dovecot
-  mv /etc/dovecot/protocols.d/pop3d.protocol /etc/dovecot/protocols.d/pop3d.protocol.disabe
-  mv /etc/dovecot/protocols.d/managesieved.protocol /etc/dovecot/protocols.d/managesieved.protocol.disabe
+  mv /etc/dovecot/protocols.d/pop3d.protocol /etc/dovecot/protocols.d/pop3d.protocol.disabled
+  mv /etc/dovecot/protocols.d/managesieved.protocol /etc/dovecot/protocols.d/managesieved.protocol.disabled
 
   # Creating users
   # 'pass' is encrypted
@@ -55,7 +50,6 @@ if [ -f /tmp/config/postfix-accounts.cf ]; then
 else
   echo "==> Warning: 'config/config/postfix-accounts.cf' is not provided. No mail account created."
 fi
-
 
 # Aliases
 if [ -f /tmp/config/postfix-virtual.cf ]; then
@@ -175,9 +169,34 @@ echo "Postfix configurations"
 touch /etc/postfix/vmailbox && postmap /etc/postfix/vmailbox
 touch /etc/postfix/virtual && postmap /etc/postfix/virtual
 
-#
+# PERMIT_DOCKER Option
+container_ip=$(ip addr show eth0 | grep 'inet ' | sed 's/[^0-9\.\/]*//g' | cut -d '/' -f 1)
+container_network="$(echo $container_ip | cut -d '.' -f1-2).0.0"
+case $PERMIT_DOCKER in
+  "host" )
+      echo "Adding $container_network/16 to my networks"
+      postconf -e "$(postconf | grep '^mynetworks =') $container_network/16"
+      bash -c "echo $container_network/16 >> /etc/opendmarc/ignore.hosts"
+      bash -c "echo $container_network/16 >> /etc/opendkim/TrustedHosts"
+    ;;
+
+  "network" )
+      echo "Adding docker network in my networks"
+      postconf -e "$(postconf | grep '^mynetworks =') 172.16.0.0/12"
+      bash -c "echo 172.16.0.0/12 >> /etc/opendmarc/ignore.hosts"
+      bash -c "echo 172.16.0.0/12 >> /etc/opendkim/TrustedHosts"
+    ;;
+
+  * )
+      echo "Adding container ip in my networks"
+      postconf -e "$(postconf | grep '^mynetworks =') $container_ip/32"
+      bash -c "echo $container_ip/32 >> /etc/opendmarc/ignore.hosts"
+      bash -c "echo $container_ip/32 >> /etc/opendkim/TrustedHosts"
+    ;;
+
+esac
+
 # Override Postfix configuration
-#
 if [ -f /tmp/config/postfix-main.cf ]; then
   while read line; do
     postconf -e "$line"
@@ -215,33 +234,86 @@ fi
 echo "Creating /etc/mailname"
 echo $(hostname -d) > /etc/mailname
 
+echo "Configuring Spamassassin"
+SA_TAG=${SA_TAG:="2.0"} && sed -i -r 's/^\$sa_tag_level_deflt (.*);/\$sa_tag_level_deflt = '$SA_TAG';/g' /etc/amavis/conf.d/20-debian_defaults
+SA_TAG2=${SA_TAG2:="6.31"} && sed -i -r 's/^\$sa_tag2_level_deflt (.*);/\$sa_tag2_level_deflt = '$SA_TAG2';/g' /etc/amavis/conf.d/20-debian_defaults
+SA_KILL=${SA_KILL:="6.31"} && sed -i -r 's/^\$sa_kill_level_deflt (.*);/\$sa_kill_level_deflt = '$SA_KILL';/g' /etc/amavis/conf.d/20-debian_defaults
+test -e /tmp/config/spamassassin-rules.cf && cp /tmp/config/spamassassin-rules.cf /etc/spamassassin/
+
+if [ "$ENABLE_FAIL2BAN" = 1 ]; then
+  echo "Fail2ban enabled"
+  test -e /tmp/config/fail2ban-jail.cf && cp /tmp/config/fail2ban-jail.cf /etc/fail2ban/jail.local
+else
+  # Disable logrotate config for fail2ban if not enabled
+  rm -f /etc/logrotate.d/fail2ban
+fi
+
+# Fix cron.daily for spamassassin
+sed -i -e 's/invoke-rc.d spamassassin reload/sv 1 spamassassin/g' /etc/cron.daily/spamassassin
 
 # Consolidate all state that should be persisted across container restarts into one mounted
 # directory
-statedir=/var/mail-state
-if [ "$ONE_DIR" = 1 -a -d $statedir ]; then
-  echo "Consolidating all state onto $statedir"
-  for d in /var/spool/postfix /var/lib/postfix /var/lib/amavis /var/lib/clamav /var/lib/spamassasin /var/lib/fail2ban; do
-    dest=$statedir/`echo $d | sed -e 's/.var.//; s/\//-/g'`
-    if [ -d $dest ]; then
-      echo "  Destination $dest exists, linking $d to it"
-      rm -rf $d
-      ln -s $dest $d
-    elif [ -d $d ]; then
-      echo "  Moving contents of $d to $dest:" `ls $d`
-      mv $d $dest
-      ln -s $dest $d
-    else
-      echo "  Linking $d to $dest"
-      mkdir -p $dest
-      ln -s $dest $d
-    fi
-  done
+#statedir=/var/mail-state
+#if [ "$ONE_DIR" = 1 -a -d $statedir ]; then
+#  echo "Consolidating all state onto $statedir"
+#  for d in /var/spool/postfix /var/lib/postfix /var/lib/amavis /var/lib/clamav /var/lib/spamassasin /var/lib/fail2ban; do
+#    dest=$statedir/`echo $d | sed -e 's/.var.//; s/\//-/g'`
+#    if [ -d $dest ]; then
+#      echo "  Destination $dest exists, linking $d to it"
+#      rm -rf $d
+#      ln -s $dest $d
+#    elif [ -d $d ]; then
+#      echo "  Moving contents of $d to $dest:" `ls $d`
+#      mv $d $dest
+#      ln -s $dest $d
+#    else
+#      echo "  Linking $d to $dest"
+#      mkdir -p $dest
+#      ln -s $dest $d
+#    fi
+#  done
+#fi
+
+# Enable Managesieve service by setting the symlink
+# to the configuration file Dovecot will actually find
+if [ "$ENABLE_MANAGESIEVE" = 1 ]; then
+  echo "Sieve management enabled"
+  mv /etc/dovecot/protocols.d/managesieved.protocol.disabled /etc/dovecot/protocols.d/managesieved.protocol
 fi
 
+if [ "$SMTP_ONLY" = 1 ]; then
+  # Here we are starting sasl and imap, not pop3 because it's disabled by default
+  echo "Disabling dovecot services"
+  touch /etc/service/dovecot/down
+fi
+
+if [ "$ENABLE_POP3" = 1 -a "$SMTP_ONLY" != 1 ]; then
+  echo "Enabling POP3 services"
+  mv /etc/dovecot/protocols.d/pop3d.protocol.disabled /etc/dovecot/protocols.d/pop3d.protocol
+fi
 
 if [ -f /tmp/config/dovecot.cf ]; then
   cp /tmp/config/dovecot.cf /etc/dovecot/local.conf
+fi
+
+# Start services related to SMTP
+if [ "$DISABLE_SPAMASSASSIN" = 1 ]; then
+  echo "Disabling spamassasin services"
+  touch /etc/service/spamassasin/down
+fi
+if ! [ "$DISABLE_CLAMAV" = 1 ]; then
+  echo "Disabling clamav services"
+  touch /etc/service/clamav/down
+fi
+if [ "$DISABLE_AMAVIS" = 1 ]; then
+  echo "Disabling amavis services"
+  touch /etc/service/amavis/down
+fi
+
+if [ "$ENABLE_FAIL2BAN" = 1 ]; then
+  echo "Enabling fail2ban service"
+  touch /var/log/auth.log
+  rm -rf /etc/service/fail2ban/down
 fi
 
 exit 0

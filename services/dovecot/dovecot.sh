@@ -10,7 +10,7 @@ fi
 DOVECOT_BUILD_PATH=/build/services/dovecot
 
 ## Install dovecot
-apt-get install -y --no-install-recommends dovecot-core dovecot-imapd dovecot-pop3d dovecot-ldap
+apt-get install -y --no-install-recommends dovecot-core dovecot-imapd dovecot-pop3d dovecot-managesieved
 
 mkdir -p /etc/service/dovecot
 cp ${DOVECOT_BUILD_PATH}/dovecot.runit /etc/service/dovecot/run

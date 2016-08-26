@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -e
+
+exec /usr/sbin/opendmarc -p /var/run/opendmarc/opendmarc.sock -c /etc/opendmarc.conf -u opendmarc -f

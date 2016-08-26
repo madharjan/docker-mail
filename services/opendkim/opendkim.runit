@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -e
+
+exec /usr/sbin/opendkim -p /var/run/opendkim/opendkim.sock -x /etc/opendkim.conf -u opendkim -f

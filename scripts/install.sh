@@ -24,6 +24,24 @@ cp ${DOVECOT_CONFIG_PATH}/dovecot.conf /etc/dovecot
 cp ${DOVECOT_CONFIG_PATH}/??-*.conf /etc/dovecot/conf.d
 cp ${DOVECOT_CONFIG_PATH}/auth-*.conf.ext /etc/dovecot/conf.d
 
+## Install SpamAssasin and runit service
+/build/services/spamassassin/spamassassin.sh
+
+## Install ClamAV and runit service
+/build/services/clamav/clamav.sh
+
+## Install Amavis and runit service
+/build/services/amavis/amavis.sh
+
+## Install OpenDKIM and runit service
+/build/services/opendkim/opendkim.sh
+
+## Install OpenDMARC and runit service
+/build/services/opendmarc/opendmarc.sh
+
+## Install Fail2Ban and runit service
+/build/services/fail2ban/fail2ban.sh
+
 mkdir -p /etc/my_init.d
 cp /build/services/mail-startup.sh /etc/my_init.d
 chmod 750 /etc/my_init.d/mail-startup.sh
