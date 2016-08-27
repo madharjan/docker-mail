@@ -15,6 +15,7 @@ apt-get install -y --no-install-recommends  fail2ban iptables
 mkdir -p /etc/service/fail2ban
 cp ${FAIL2BAN_BUILD_PATH}/fail2ban.runit /etc/service/fail2ban/run
 chmod 750 /etc/service/fail2ban/run
+
 # default disabled
 touch /etc/service/fail2ban/down
 

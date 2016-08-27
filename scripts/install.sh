@@ -30,6 +30,8 @@ cp ${DOVECOT_CONFIG_PATH}/auth-*.conf.ext /etc/dovecot/conf.d
 
 ## Install ClamAV and runit service
 /build/services/clamav/clamav.sh
+## AV Database
+/usr/bin/freshclam
 
 ## Install Amavis and runit service
 /build/services/amavis/amavis.sh
@@ -43,8 +45,8 @@ cp ${DOVECOT_CONFIG_PATH}/auth-*.conf.ext /etc/dovecot/conf.d
 ## Install Fail2Ban and runit service
 /build/services/fail2ban/fail2ban.sh
 
-cp ${DOVECOT_CONFIG_PATH}/jail.conf /etc/fail2ban/jail.conf
-cp ${DOVECOT_CONFIG_PATH}/filter.d/dovecot.conf /etc/fail2bian/filter.d/dovecot.conf
+cp ${FAIL2BAN_CONFIG_PATH}/jail.conf /etc/fail2ban/jail.conf
+cp ${FAIL2BAN_CONFIG_PATH}/filter.d/dovecot.conf /etc/fail2ban/filter.d/dovecot.conf
 
 mkdir -p /etc/my_init.d
 cp /build/services/mail-startup.sh /etc/my_init.d

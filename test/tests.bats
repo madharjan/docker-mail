@@ -9,7 +9,7 @@
   [ "$status" -eq 0 ]
 }
 
-@test "checking process: new" {
+@test "checking process: amavisd-new" {
   run docker exec mail /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/amavisd-new'"
   [ "$status" -eq 0 ]
 }
@@ -28,6 +28,27 @@
   run docker exec mail /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/bin/python /usr/bin/fail2ban-server'"
   [ "$status" -eq 1 ]
 }
+
+@test "checking process: fail2ban (fail2ban server enabled)" {
+  run docker exec mail_fail2ban /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/bin/python /usr/bin/fail2ban-server'"
+  [ "$status" -eq 0 ]
+}
+
+@test "checking process: amavis (amavis disabled by DISABLE_AMAVIS)" {
+  run docker exec mail_disabled_amavis /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/amavisd-new'"
+  [ "$status" -eq 1 ]
+}
+
+@test "checking process: spamassassin (spamassassin disabled by DISABLE_SPAMASSASSIN)" {
+  run docker exec mail_disabled_spamassassin /bin/bash -c "ps aux --forest | grep -v grep | grep ''/usr/sbin/spamd'"
+  [ "$status" -eq 1 ]
+}
+
+@test "checking process: clamav (clamav disabled by DISABLE_CLAMAV)" {
+  run docker exec mail_disabled_clamav /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/clamd'"
+  [ "$status" -eq 1 ]
+}
+
 
 # imap
 @test "checking process: dovecot imaplogin (enabled in default configuration)" {
@@ -81,7 +102,7 @@
 @test "checking logs: mail related logs should be located in a subdirectory" {
   run docker exec mail /bin/sh -c "ls -1 /var/log/mail/ | grep -E 'clamav|freshclam|mail'|wc -l"
   [ "$status" -eq 0 ]
-  [ "$output" = 1 ]
+  [ "$output" = 3 ]
 }
 
 # smtp
@@ -204,19 +225,9 @@
   [ "$output" = 'mail_max_userip_connections = 69' ]
 }
 
-# amavisd-new
-@test "checking process: amavis (amavis disabled by DISABLE_AMAVIS)" {
-  run docker exec mail_disabled_amavis /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/amavisd-new'"
-  [ "$status" -eq 1 ]
-}
-
-# clamav
-@test "checking process: clamav (clamav disabled by DISABLE_CLAMAV)" {
-  run docker exec mail_disabled_clamav /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/clamd'"
-  [ "$status" -eq 1 ]
-}
 
 # spamassassin
+
 @test "checking spamassassin: docker env variables are set correctly (default)" {
   run docker exec mail_pop3 /bin/sh -c "grep '\$sa_tag_level_deflt' /etc/amavis/conf.d/20-debian_defaults | grep '= 2.0'"
   [ "$status" -eq 0 ]
@@ -235,10 +246,6 @@
   [ "$status" -eq 0 ]
 }
 
-@test "checking process: spamassassin (spamassassin disabled by DISABLE_SPAMASSASSIN)" {
-  run docker exec mail_disabled_spamassassin /bin/bash -c "ps aux --forest | grep -v grep | grep ''/usr/sbin/spamd'"
-  [ "$status" -eq 1 ]
-}
 
 
 # opendkim
@@ -263,22 +270,22 @@
     `docker inspect --format '{{ .Config.Image }}' mail` /bin/sh -c 'generate-dkim-config | wc -l'
   [ "$status" -eq 0 ]
   [ "$output" -eq 6 ]
-#  # Check keys for localhost.localdomain
+  # Check keys for localhost.localdomain
   run docker run --rm \
     -v "$(pwd)/test/config/empty/opendkim":/etc/opendkim \
     `docker inspect --format '{{ .Config.Image }}' mail` /bin/sh -c 'ls -1 /etc/opendkim/keys/localhost.localdomain/ | wc -l'
   [ "$status" -eq 0 ]
   [ "$output" -eq 2 ]
-#  # Check keys for otherdomain.tld
+  # Check keys for otherdomain.tld
   run docker run --rm \
     -v "$(pwd)/test/config/empty/opendkim":/etc/opendkim \
     `docker inspect --format '{{ .Config.Image }}' mail` /bin/sh -c 'ls -1 /etc/opendkim/keys/otherdomain.tld | wc -l'
   [ "$status" -eq 0 ]
   [ "$output" -eq 2 ]
-#  # Check presence of tables and TrustedHosts
+  # Check presence of tables and TrustedHosts
   run docker run --rm \
     -v "$(pwd)/test/config/empty/opendkim":/etc/opendkim \
-    `docker inspect --format '{{ .Config.Image }}' mail` /bin/sh -c "ls -1 etc/opendkim | grep -E 'KeyTable|SigningTable|TrustedHosts|keys'|wc -l"
+    `docker inspect --format '{{ .Config.Image }}' mail` /bin/sh -c "ls -1 /etc/opendkim | grep -E 'KeyTable|SigningTable|TrustedHosts|keys'|wc -l"
   [ "$status" -eq 0 ]
   [ "$output" -eq 4 ]
 }
@@ -331,12 +338,7 @@
   [ "$status" -eq 0 ]
 }
 
-
 # fail2ban
-@test "checking process: fail2ban (fail2ban server enabled)" {
-  run docker exec mail_fail2ban /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/bin/python /usr/bin/fail2ban-server'"
-  [ "$status" -eq 0 ]
-}
 
 @test "checking fail2ban: localhost is not banned because ignored" {
   run docker exec mail_fail2ban /bin/sh -c "fail2ban-client status postfix-sasl | grep 'IP list:.*127.0.0.1'"
@@ -367,7 +369,8 @@
   # Create a container which will send wront authentications and should banned
   docker run --name fail-auth-mailer -e MAIL_FAIL2BAN_IP=$MAIL_FAIL2BAN_IP -v "$(pwd)/test":/tmp/test -d $(docker inspect --format '{{ .Config.Image }}' mail) tail -f /var/log/faillog
 
-  docker exec fail-auth-mailer /bin/sh -c 'nc $MAIL_FAIL2BAN_IP 25 < /tmp/test/auth/smtp-auth-login-wrong.txt'#  docker exec fail-auth-mailer /bin/sh -c 'nc $MAIL_FAIL2BAN_IP 25 < /tmp/test/auth/smtp-auth-login-wrong.txt'
+  docker exec fail-auth-mailer /bin/sh -c 'nc $MAIL_FAIL2BAN_IP 25 < /tmp/test/auth/smtp-auth-login-wrong.txt'
+  docker exec fail-auth-mailer /bin/sh -c 'nc $MAIL_FAIL2BAN_IP 25 < /tmp/test/auth/smtp-auth-login-wrong.txt'
 
   sleep 5
 
@@ -411,9 +414,9 @@
   [ "$status" -eq 1 ]
   run docker exec mail grep ': error:' /var/log/mail/mail.log
   [ "$status" -eq 1 ]
-  run docker exec mail grep 'non-null host address bits in' /var/log/mail/mail.log
+  run docker exec mail_pop3 grep 'non-null host address bits in' /var/log/mail/mail.log
   [ "$status" -eq 1 ]
-  run docker exec mail grep ': error:' /var/log/mail/mail.log
+  run docker exec mail_pop3 grep ': error:' /var/log/mail/mail.log
   [ "$status" -eq 1 ]
 }
 

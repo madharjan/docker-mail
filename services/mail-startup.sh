@@ -301,7 +301,7 @@ if [ "$DISABLE_SPAMASSASSIN" = 1 ]; then
   echo "Disabling spamassasin services"
   touch /etc/service/spamassasin/down
 fi
-if ! [ "$DISABLE_CLAMAV" = 1 ]; then
+if [ "$DISABLE_CLAMAV" = 1 ]; then
   echo "Disabling clamav services"
   touch /etc/service/clamav/down
 fi
