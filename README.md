@@ -35,65 +35,7 @@ git tag 2.11-2.2.9
 git push origin 2.11-2.2.9
 ```
 
-### Development Environment
-using VirtualBox & Ubuntu Cloud Image (Mac & Windows)
-
-**Install Tools**
-
-* [VirtualBox][virtualbox] 4.3.10 or greater
-* [Vagrant][vagrant] 1.6 or greater
-* [Cygwin][cygwin] (if using Windows)
-
-Install `vagrant-vbguest` plugin to auto install VirtualBox Guest Addition to virtual machine.
-```
-vagrant plugin install vagrant-vbguest
-```
-
-[virtualbox]: https://www.virtualbox.org/
-[vagrant]: https://www.vagrantup.com/downloads.html
-[cygwin]: https://cygwin.com/install.html
-
-**Clone this project**
-
-```
-git clone https://github.com/madharjan/docker-mail
-cd docker-mail
-```
-
-**Startup Ubuntu VM on VirtualBox**
-
-```
-vagrant up
-```
-
-**Build Container**
-
-```
-# login to DockerHub
-vagrant ssh -c "docker login"  
-
-# build
-vagrant ssh -c "cd /vagrant; make"
-
-# test
-vagrant ssh -c "cd /vagrant; make test"
-
-# tag
-vagrant ssh -c "cd /vagrant; make tag_latest"
-
-# update Makefile & Changelog.md
-# release
-vagrant ssh -c "cd /vagrant; make release"
-```
-
-**Tag and Commit to Git**
-```
-git tag 2.11-2.2.9
-git push origin 2.11-2.2.9
-```
-
 ## Run Container
-
 
 ### Postfix SMTP, Dovecot IMAP/POP3
 
@@ -152,4 +94,47 @@ docker run -d -t \
   --hostname mail.${DOMAIN}
   --name mail \
   madharjan/docker-mail:2.11-2.2.9 /sbin/my_init
+```
+
+**Systemd Unit File**
+```
+[Unit]
+Description=Mail
+
+After=docker.service
+
+[Service]
+TimeoutStartSec=0
+
+ExecStartPre=-/bin/mkdir -p /opt/docker/mail
+ExecStartPre=-/usr/bin/docker stop mail
+ExecStartPre=-/usr/bin/docker rm mail
+ExecStartPre=-/usr/bin/docker pull madharjan/docker-mail:2.11-2.2.9
+
+ExecStart=/usr/bin/docker run \
+  -e ENABLE_POP3=1 \
+  -e ENABLE_FAIL2BAN=1 \
+  -e ENABLE_MANAGESIEVE=1 \
+  -e SA_TAG=2.0 \
+  -e SA_TAG2=6.31 \
+  -e SA_KILL=6.31\
+  -e SASL_PASSWD=mysaslpassword \
+  -e SMTP_ONLY= \
+  -e SSL_TYPE=certbot \
+  -p 25:25 \
+  -p 587:587 \
+  -p 993:993 \
+  -p 995:995 \
+  -v /opt/docker/mail/config:/tmp/config \
+  -v /opt/docker/mail/data:/var/mail \
+  -v /opt/docker/mail/log:/var/log/mail \
+  -v /opt/docker/certbot:/etc/certbot \
+  --hostname mail.${DOMAIN}
+  --name mail \
+  madharjan/docker-mail:2.11-2.2.9 /sbin/my_init
+
+ExecStop=/usr/bin/docker stop -t 2 mail
+
+[Install]
+WantedBy=multi-user.target
 ```
