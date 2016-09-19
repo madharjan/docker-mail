@@ -3,14 +3,16 @@ set -e
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-if [ "$DEBUG" == true ]; then
+if [ "${DEBUG}" == true ]; then
   set -x
 fi
 
 FAIL2BAN_BUILD_PATH=/build/services/fail2ban
 
-## Install dovecot
-apt-get install -y --no-install-recommends  fail2ban iptables
+## Install fail2ban
+apt-get install -y --no-install-recommends \
+  iptables \
+  fail2ban
 
 mkdir -p /etc/service/fail2ban
 cp ${FAIL2BAN_BUILD_PATH}/fail2ban.runit /etc/service/fail2ban/run

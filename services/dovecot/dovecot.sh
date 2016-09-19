@@ -3,14 +3,18 @@ set -e
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-if [ "$DEBUG" == true ]; then
+if [ "${DEBUG}" == true ]; then
   set -x
 fi
 
 DOVECOT_BUILD_PATH=/build/services/dovecot
 
 ## Install dovecot
-apt-get install -y --no-install-recommends dovecot-core dovecot-imapd dovecot-pop3d dovecot-managesieved
+apt-get install -y --no-install-recommends \
+  dovecot-core \
+  dovecot-imapd \
+  dovecot-managesieved \
+  dovecot-pop3d
 
 mkdir -p /etc/service/dovecot
 cp ${DOVECOT_BUILD_PATH}/dovecot.runit /etc/service/dovecot/run
