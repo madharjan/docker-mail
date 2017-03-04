@@ -1,10 +1,16 @@
 FROM madharjan/docker-base:14.04
 MAINTAINER Madhav Raj Maharjan <madhav.maharjan@gmail.com>
 
-LABEL description="Docker container for Postfix SMTP, Dovecot IMAP/POP3" os_version="Ubuntu 14.04"
-
-ENV HOME /root
+ARG VCS_REF
+ARG POSTFIX_VERSION
+ARG DOVECOT_VERSION
 ARG DEBUG=false
+
+LABEL description="Docker container for Postfix SMTP, Dovecot IMAP/POP3" os_version="Ubuntu ${UBUNTU_VERSION}" \
+      org.label-schema.vcs-ref=${VCS_REF} org.label-schema.vcs-url="https://github.com/madharjan/docker-mail"
+
+ENV POSTFIX_VERSION ${POSTFIX_VERSION}
+ENV DOVECOT_VERSION ${DOVECOT_VERSION}
 
 RUN mkdir -p /build
 COPY . /build

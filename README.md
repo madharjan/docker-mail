@@ -1,6 +1,26 @@
 # docker-mail
-Docker container for Postfix SMTP & Dovecot IMAP/POP3
-Based on https://github.com/tomav/docker-mailserver
+Docker container for Postfix SMTP & Dovecot IMAP/POP3 based on [madharjan/docker-base](https://github.com/madharjan/docker-base/)
+
+Postfix and Dovecot configuration based on https://github.com/tomav/docker-mailserver
+
+* Postfix 2.11 Dovecot 2.2.9 (docker-mail)
+
+**Environment**
+
+| Variable                  | Default | Example        |
+|---------------------------|---------|----------------|
+| DISABLE_AMAVIS            |         | 1 (to disable) |
+| DISABLE_CLAMAV            |         | 1 (to disable) |
+| DISABLE_SPAMASSASSIN      |         | 1 (to disable) |
+| ENABLE_FAIL2BAN           |         | 1 (to enable)  |
+| ENABLE_MANAGESIEVE        |         | 1 (to enable)  |
+| ENABLE_POP3               |         | 1 (to enable)  |
+| SMTP_ONLY                 |         | 1 (to enable)  |
+| SSL_TYPE                  |         | certbot        |
+| SASL_PASSWD               |         | Pa$$           |
+| SA_TAG                    |         | 2.0            |
+| SA_TAG2                   |         | 6.31           |
+| SA_KILL                   |         | 6.31           |
 
 ## Build
 
@@ -24,7 +44,7 @@ make test
 # tag
 make tag_latest
 
-# update Makefile & Changelog.md
+# update Changelog.md
 # release
 make release
 ```
@@ -41,18 +61,18 @@ git push origin 2.11-2.2.9
 
 **Run Certbot to create SSL certificate for `mail.${DOMAIN}`**
 ```
-docker exec --rm -t \
+docker exec --rm \
    -e EMAIL=me@email.com \
    -e DOMAIN=company.com \
    -p 80:80 \
    -p 443:443 \
    -v /opt/docker/certbot:/etc/certbot \
-   madharjan/doocker-mail:2.11-2.2.9 /bin/sh -c "/usr/local/sbin/certbot-auto certonly -t -n --no-self-upgrade --agree-tos --standalone --config-dir /etc/certbot -m ${EMAIL} -d mail.${DOMAIN}"
+   madharjan/doocker-mail:2.11-2.2.9 /bin/sh -c "/usr/local/sbin/certbot-auto certonly -n --no-self-upgrade --agree-tos --standalone --config-dir /etc/certbot --logs-dir /var/log/certbot -m ${EMAIL} -d mail.${DOMAIN}"
 ```
 
 **Generate DKIM keys**
 ```
-docker run --rm -t\
+docker run --rm \
   -v /opt/docker/mail/config:/tmp/config \
   madharjan/doocker-mail:2.11-2.2.9 /bin/sh -c "generate-dkim-config"
 ```
@@ -60,7 +80,7 @@ DKIM keys are generated, configure DNS server with DKIM keys from `config/opedki
 
 **Create mail users**
 ```
-docker exec --rm -t \
+docker exec --rm \
    -e USERNAME=user1 \
    -e DOMAIN=company.com \
    -e PASSWORD=password \
@@ -73,7 +93,7 @@ docker exec --rm -t \
 docker stop mail
 docker rm mail
 
-docker run -d -t \
+docker run -d \
   -e ENABLE_POP3=1 \
   -e ENABLE_FAIL2BAN=1 \
   -e ENABLE_MANAGESIEVE=1 \
@@ -93,7 +113,7 @@ docker run -d -t \
   -v /opt/docker/certbot:/etc/certbot \
   --hostname mail.${DOMAIN}
   --name mail \
-  madharjan/docker-mail:2.11-2.2.9 /sbin/my_init
+  madharjan/docker-mail:2.11-2.2.9
 ```
 
 **Systemd Unit File**
@@ -131,7 +151,7 @@ ExecStart=/usr/bin/docker run \
   -v /opt/docker/certbot:/etc/certbot \
   --hostname mail.${DOMAIN}
   --name mail \
-  madharjan/docker-mail:2.11-2.2.9 /sbin/my_init
+  madharjan/docker-mail:2.11-2.2.9
 
 ExecStop=/usr/bin/docker stop -t 2 mail
 

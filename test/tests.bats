@@ -1,63 +1,63 @@
 # processes
 @test "checking process: postfix" {
-  run docker exec mail /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/lib/postfix/master'"
+  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/lib/postfix/master'"
   [ "$status" -eq 0 ]
 }
 
 @test "checking process: clamd" {
-  run docker exec mail /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/clamd'"
+  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/clamd'"
   [ "$status" -eq 0 ]
 }
 
 @test "checking process: amavisd-new" {
-  run docker exec mail /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/amavisd-new'"
+  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/amavisd-new'"
   [ "$status" -eq 0 ]
 }
 
 @test "checking process: opendkim" {
-  run docker exec mail /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/opendkim'"
+  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/opendkim'"
   [ "$status" -eq 0 ]
 }
 
 @test "checking process: opendmarc" {
-  run docker exec mail /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/opendmarc'"
+  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/opendmarc'"
   [ "$status" -eq 0 ]
 }
 
 @test "checking process: fail2ban (disabled in default configuration)" {
-  run docker exec mail /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/bin/python /usr/bin/fail2ban-server'"
+  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/bin/python /usr/bin/fail2ban-server'"
   [ "$status" -eq 1 ]
 }
 
 @test "checking process: fail2ban (fail2ban server enabled)" {
-  run docker exec mail_fail2ban /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/bin/python /usr/bin/fail2ban-server'"
+  run docker exec mail_fail2ban /bin/bash -c "ps aux | grep -v grep | grep '/usr/bin/python /usr/bin/fail2ban-server'"
   [ "$status" -eq 0 ]
 }
 
-@test "checking process: amavis (amavis disabled by DISABLE_AMAVIS)" {
-  run docker exec mail_disabled_amavis /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/amavisd-new'"
+@test "checking process: amavis-new (amavis disabled by DISABLE_AMAVIS)" {
+  run docker exec mail_disabled_amavis /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/amavisd-new'"
   [ "$status" -eq 1 ]
 }
 
 @test "checking process: spamassassin (spamassassin disabled by DISABLE_SPAMASSASSIN)" {
-  run docker exec mail_disabled_spamassassin /bin/bash -c "ps aux --forest | grep -v grep | grep ''/usr/sbin/spamd'"
+  run docker exec mail_disabled_spamassassin /bin/bash -c "ps aux | grep -v grep | grep ''/usr/sbin/spamd'"
   [ "$status" -eq 1 ]
 }
 
 @test "checking process: clamav (clamav disabled by DISABLE_CLAMAV)" {
-  run docker exec mail_disabled_clamav /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/clamd'"
+  run docker exec mail_disabled_clamav /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/clamd'"
   [ "$status" -eq 1 ]
 }
 
 
 # imap
 @test "checking process: dovecot imaplogin (enabled in default configuration)" {
-  run docker exec mail /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/dovecot'"
+  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/dovecot'"
   [ "$status" -eq 0 ]
 }
 
 @test "checking process: dovecot imaplogin (disabled using SMTP_ONLY)" {
-  run docker exec mail_smtponly /bin/bash -c "ps aux --forest | grep -v grep | grep '/usr/sbin/dovecot'"
+  run docker exec mail_smtponly /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/dovecot'"
   [ "$status" -eq 1 ]
 }
 
@@ -100,9 +100,9 @@
 
 # logs
 @test "checking logs: mail related logs should be located in a subdirectory" {
-  run docker exec mail /bin/sh -c "ls -1 /var/log/mail/ | grep -E 'clamav|freshclam|mail'|wc -l"
+  run docker exec mail /bin/sh -c "ls /var/log/mail/ | grep 'mail.log' | wc -l"
   [ "$status" -eq 0 ]
-  [ "$output" = 3 ]
+  [ "$output" = 1 ]
 }
 
 # smtp
@@ -319,21 +319,26 @@
   [ "$status" -eq 0 ]
 }
 
-@test "checking ssl: letsencrypt configuration is correct" {
-  run docker exec mail_pop3 /bin/sh -c 'grep -ir "/etc/letsencrypt/live/mail.my-domain.com/" /etc/postfix/main.cf | wc -l'
+@test "checking ssl: lets-encrypt-x3-cross-signed.pem is installed" {
+  run docker exec mail grep 'BEGIN CERTIFICATE' /etc/ssl/certs/lets-encrypt-x3-cross-signed.pem
+  [ "$status" -eq 0 ]
+}
+
+@test "checking ssl: certbot configuration is correct" {
+  run docker exec mail_pop3 /bin/sh -c 'grep -ir "/etc/certbot/live/mail.my-domain.com/" /etc/postfix/main.cf | wc -l'
   [ "$status" -eq 0 ]
   [ "$output" -eq 2 ]
-  run docker exec mail_pop3 /bin/sh -c 'grep -ir "/etc/letsencrypt/live/mail.my-domain.com/" /etc/dovecot/conf.d/10-ssl.conf | wc -l'
+  run docker exec mail_pop3 /bin/sh -c 'grep -ir "/etc/certbot/live/mail.my-domain.com/" /etc/dovecot/conf.d/10-ssl.conf | wc -l'
   [ "$status" -eq 0 ]
   [ "$output" -eq 2 ]
 }
 
-@test "checking ssl: letsencrypt combined.pem generated correctly" {
-  run docker exec mail_pop3 ls -1 /etc/letsencrypt/live/mail.my-domain.com/combined.pem
+@test "checking ssl: certbot combined.pem generated correctly" {
+  run docker exec mail_pop3 ls -1 /etc/certbot/live/mail.my-domain.com/combined.pem
   [ "$status" -eq 0 ]
 }
 
-@test "checking ssl: letsencrypt cert works correctly" {
+@test "checking ssl: certbot cert works correctly" {
   run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:587 -starttls smtp -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
   [ "$status" -eq 0 ]
 }
@@ -366,6 +371,8 @@
   # Getting mail_fail2ban container IP
   MAIL_FAIL2BAN_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' mail_fail2ban)
 
+  docker stop fail-auth-mailer ||  true
+  docker rm fail-auth-mailer || true
   # Create a container which will send wront authentications and should banned
   docker run --name fail-auth-mailer -e MAIL_FAIL2BAN_IP=$MAIL_FAIL2BAN_IP -v "$(pwd)/test":/tmp/test -d $(docker inspect --format '{{ .Config.Image }}' mail) tail -f /var/log/faillog
 
@@ -381,7 +388,7 @@
   [ "$status" -eq 0 ]
 
   # Checking that FAIL_AUTH_MAILER_IP is banned by iptables
-  run docker exec mail_fail2ban /bin/sh -c "iptables -L f2b-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
+  run docker exec mail_fail2ban /bin/sh -c "iptables -L fail2ban-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
   [ "$status" -eq 0 ]
 }
 
@@ -396,7 +403,7 @@
   [ "$status" -eq 1 ]
 
   # Checking that FAIL_AUTH_MAILER_IP is unbanned by iptables
-  run docker exec mail_fail2ban /bin/sh -c "iptables -L f2b-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
+  run docker exec mail_fail2ban /bin/sh -c "iptables -L fail2ban-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
   [ "$status" -eq 1 ]
 }
 

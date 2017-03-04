@@ -3,10 +3,11 @@ set -e
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-if [ "${DEBUG}" == true ]; then
+if [ "${DEBUG}" = true ]; then
   set -x
 fi
 
+apt-get autoremove -y
 apt-get clean
 rm -rf /build
 rm -rf /tmp/* /var/tmp/*

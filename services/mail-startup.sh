@@ -1,5 +1,23 @@
 #!/bin/bash
 
+set -e
+
+if [ "${DEBUG}" = true ]; then
+  set -x
+fi
+
+DISABLE_AMAVIS=${DISABLE_AMAVIS:-}
+DISABLE_CLAMAV=${DISABLE_CLAMAV:-}
+DISABLE_SPAMASSASSIN=${DISABLE_SPAMASSASSIN:-}
+ENABLE_FAIL2BAN=${ENABLE_FAIL2BAN:-}
+ENABLE_MANAGESIEVE=${ENABLE_MANAGESIEVE:-}
+ENABLE_POP3=${ENABLE_POP3:-}
+SMTP_ONLY=${SMTP_ONLY:-}
+SASL_PASSWD=${SASL_PASSWD:-}
+SA_TAG=${SA_TAG:-}
+SA_TAG2=${SA_TAG2:-}
+SA_KILL=${SA_KILL:-}
+
 # Users
 if [ -f /tmp/config/postfix-accounts.cf ]; then
   echo "Configuring Postfix & Dovecot"
@@ -94,10 +112,10 @@ fi
 
 # DMARC
 # if there is no AuthservID create it
-if [ `cat /etc/opendmarc.conf | grep -w AuthservID | wc -l` -eq 0 ]; then
+if [ `cat /etc/opendmarc.conf | grep -e '^AuthservID .*' | wc -l` -eq 0 ]; then
   echo "AuthservID $(hostname)" >> /etc/opendmarc.conf
 fi
-if [ `cat /etc/opendmarc.conf | grep -w TrustedAuthservIDs | wc -l` -eq 0 ]; then
+if [ `cat /etc/opendmarc.conf | grep -e '^TrustedAuthservIDs .*' | wc -l` -eq 0 ]; then
   echo "TrustedAuthservIDs $(hostname)" >> /etc/opendmarc.conf
 fi
 if [ ! -f "/etc/opendmarc/ignore.hosts" ]; then

@@ -4,4 +4,4 @@ set -e
 
 touch /var/log/auth.log
 
-exec /usr/bin/fail2ban-server -f
+exec /usr/bin/fail2ban-client -i start
