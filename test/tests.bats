@@ -228,7 +228,7 @@
 
 # spamassassin
 
-@test "checking spamassassin: docker env variables are set correctly (default)" {
+@test "checking spamassassin: variables are set correctly (default)" {
   run docker exec mail_pop3 /bin/sh -c "grep '\$sa_tag_level_deflt' /etc/amavis/conf.d/20-debian_defaults | grep '= 2.0'"
   [ "$status" -eq 0 ]
   run docker exec mail_pop3 /bin/sh -c "grep '\$sa_tag2_level_deflt' /etc/amavis/conf.d/20-debian_defaults | grep '= 6.31'"
@@ -237,7 +237,7 @@
   [ "$status" -eq 0 ]
 }
 
-@test "checking spamassassin: docker env variables are set correctly (custom)" {
+@test "checking spamassassin: variables are set correctly (custom)" {
   run docker exec mail /bin/sh -c "grep '\$sa_tag_level_deflt' /etc/amavis/conf.d/20-debian_defaults | grep '= 1.0'"
   [ "$status" -eq 0 ]
   run docker exec mail /bin/sh -c "grep '\$sa_tag2_level_deflt' /etc/amavis/conf.d/20-debian_defaults | grep '= 2.0'"
@@ -305,13 +305,15 @@
 
 # ssl
 @test "checking ssl: generated default cert works correctly" {
-  run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:995 -CApath /etc/ssl/certs/ | grep 'Verify return code: 18 (self signed certificate)'"
-  [ "$status" -eq 0 ]
+  # imaps
   run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:993 -CApath /etc/ssl/certs/ | grep 'Verify return code: 18 (self signed certificate)'"
   [ "$status" -eq 0 ]
-  run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:587 -starttls smtp -CApath /etc/ssl/certs/ | grep 'Verify return code: 18 (self signed certificate)'"
-  [ "$status" -eq 0 ]
+  # imap
   run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:143 -starttls imap -CApath /etc/ssl/certs/ | grep 'Verify return code: 18 (self signed certificate)'"
+  [ "$status" -eq 0 ]
+
+  # smtps
+  run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:587 -starttls smtp -CApath /etc/ssl/certs/ | grep 'Verify return code: 18 (self signed certificate)'"
   [ "$status" -eq 0 ]
 }
 
@@ -345,13 +347,19 @@
 }
 
 @test "checking ssl: certbot cert works correctly" {
+  # pop3s
   run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:995 -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
   [ "$status" -eq 0 ]
+
+  # imaps
   run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:993 -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
   [ "$status" -eq 0 ]
-  run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:587 -starttls smtp -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
-  [ "$status" -eq 0 ]
+  # imap
   run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:143 -starttls imap -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
+  [ "$status" -eq 0 ]
+
+  # smtps
+  run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:587 -starttls smtp -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
   [ "$status" -eq 0 ]
 }
 
