@@ -35,10 +35,10 @@ sed -i 's/#ssl = yes/ssl = yes/' /etc/dovecot/conf.d/10-ssl.conf
 /build/services/clamav/clamav.sh
 
 ## AV Database
-cp /build/config/main.cvd /var/lib/clamav/main.cvd
-cp /build/config/daily.cvd /var/lib/clamav/daily.cvd
-cp /build/config/bytecode.cvd /var/lib/clamav/bytecode.cvd
-#/usr/bin/freshclam
+#cp /build/config/main.cvd /var/lib/clamav/main.cvd
+#cp /build/config/daily.cvd /var/lib/clamav/daily.cvd
+#cp /build/config/bytecode.cvd /var/lib/clamav/bytecode.cvd
+/usr/bin/freshclam
 
 ## Install Amavis and runit service
 /build/services/amavis/amavis.sh

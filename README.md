@@ -1,9 +1,28 @@
 # docker-mail
+
+[![](https://images.microbadger.com/badges/image/madharjan/docker-mail.svg)](https://microbadger.com/images/madharjan/docker-mail "Get your own image badge on microbadger.com")
+
 Docker container for Postfix SMTP & Dovecot IMAP/POP3 based on [madharjan/docker-base](https://github.com/madharjan/docker-base/)
 
-Postfix and Dovecot configuration based on https://github.com/tomav/docker-mailserver
+Mail Server configuration based on [tomav/docker-mailserver](https://github.com/tomav/docker-mailserver)
 
-* Postfix 2.11 Dovecot 2.2.9 (docker-mail)
+**Changes**
+* Services configured as `runit` services
+* Scripts refactor-ed for baseimage `docker-base`
+
+**Features**
+* Using scripts in `my_init.d` to initialize services (e.g mail-startup.sh)
+* Using scripts in `my_shutdown.d` to cleanup services before container stop (e.g postfix-stop.sh)
+* Bats ([sstephenson/bats](https://github.com/sstephenson/bats/)) based test cases
+
+## Postfix 2.11 & Dovecot 2.2.9 (docker-mail)
+ - SpamAssassin 3.4.0
+ - ClamAV 0.99.2
+ - Fail2Ban 0.8.11
+ - Manage Sieve 2.2.9
+ - Certbot SSL
+ - OpenDKIM 2.9.1
+ - OpenDMARC 1.2.0
 
 **Environment**
 
