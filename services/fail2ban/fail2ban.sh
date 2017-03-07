@@ -14,6 +14,8 @@ apt-get install -y --no-install-recommends \
   iptables \
   fail2ban
 
+echo "ignoreregex =" >> /etc/fail2ban/filter.d/postfix-sasl.conf
+
 mkdir -p /etc/service/fail2ban
 cp ${FAIL2BAN_BUILD_PATH}/fail2ban.runit /etc/service/fail2ban/run
 chmod 750 /etc/service/fail2ban/run

@@ -17,7 +17,10 @@ apt-get install -y --no-install-recommends \
   gzip \
   p7zip \
   unzip \
-  arj
+  arj \
+  unrar \
+  cabextract \
+  zip
 
 mkdir -p /etc/service/amavis
 cp ${AMAVIS_BUILD_PATH}/amavis.runit /etc/service/amavis/run

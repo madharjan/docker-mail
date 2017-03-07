@@ -10,6 +10,7 @@ fi
 POSTFIX_CONFIG_PATH=/build/config/postfix
 DOVECOT_CONFIG_PATH=/build/config/dovecot
 FAIL2BAN_CONFIG_PATH=/build/config/fail2ban
+AMAVIS_CONFIG_PATH=/build/config/amavis
 
 apt-get update
 apt-get upgrade -y --no-install-recommends
@@ -25,6 +26,8 @@ cp ${DOVECOT_CONFIG_PATH}/dovecot.conf /etc/dovecot
 cp ${DOVECOT_CONFIG_PATH}/??-*.conf /etc/dovecot/conf.d
 cp ${DOVECOT_CONFIG_PATH}/auth-*.conf.ext /etc/dovecot/conf.d
 
+sed -i 's/#ssl = yes/ssl = yes/' /etc/dovecot/conf.d/10-ssl.conf
+
 ## Install SpamAssasin and runit service
 /build/services/spamassassin/spamassassin.sh
 
@@ -35,11 +38,21 @@ cp ${DOVECOT_CONFIG_PATH}/auth-*.conf.ext /etc/dovecot/conf.d
 cp /build/config/main.cvd /var/lib/clamav/main.cvd
 cp /build/config/daily.cvd /var/lib/clamav/daily.cvd
 cp /build/config/bytecode.cvd /var/lib/clamav/bytecode.cvd
-sed -i 's/db.local.clamav.net/db.us.clamav.net/' /etc/clamav/freshclam.conf
 #/usr/bin/freshclam
 
 ## Install Amavis and runit service
 /build/services/amavis/amavis.sh
+cp ${AMAVIS_CONFIG_PATH}/15-content_filter_mode /etc/amavis/conf.d
+
+adduser clamav amavis
+adduser amavis clamav
+
+## Enables Pyzor and Razor
+apt-get install -y --no-install-recommends pyzor razor
+
+#sudo -H -u amavis bash -c 'razor-admin -home=/var/lib/amavis/.razor -create'
+#sudo -H -u amavis bash -c 'razor-admin -home=/var/lib/amavis/.razor -register'
+#sudo -H -u amavis bash -c 'pyzor -home=/var/lib/amavis/.razor discover'
 
 ## Install OpenDKIM and runit service
 /build/services/opendkim/opendkim.sh
@@ -52,11 +65,18 @@ sed -i 's/db.local.clamav.net/db.us.clamav.net/' /etc/clamav/freshclam.conf
 
 cp ${FAIL2BAN_CONFIG_PATH}/jail.conf /etc/fail2ban/jail.conf
 cp ${FAIL2BAN_CONFIG_PATH}/filter.d/dovecot.conf /etc/fail2ban/filter.d/dovecot.conf
-echo "ignoreregex =" >> /etc/fail2ban/filter.d/postfix-sasl.conf
 
 mkdir -p /etc/my_init.d
 cp /build/services/mail-startup.sh /etc/my_init.d
+cp /build/services/postfix-chroot.sh /etc/my_init.d
 chmod 750 /etc/my_init.d/mail-startup.sh
+chmod 750 /etc/my_init.d/postfix-chroot.sh
+
+mkdir -p /etc/my_shutdown.d
+cp /build/services/postfix-stop.sh /etc/my_shutdown.d
+cp /build/services/fail2ban-stop.sh /etc/my_shutdown.d
+chmod 750 /etc/my_shutdown.d/fail2ban-stop.sh
+chmod 750 /etc/my_shutdown.d/postfix-stop.sh
 
 cp /build/bin/addmailuser /usr/local/bin
 cp /build/bin/delmailuser /usr/local/bin

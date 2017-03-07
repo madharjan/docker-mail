@@ -148,11 +148,11 @@ case $SSL_TYPE in
     ;;
 
   "self-signed" )
-    # Adding self-signed SSL certificate if provided in 'postfix/ssl' folder
+    # Adding self-signed SSL certificate if provided in '/tmp/config/ssl' folder
     if [ -e "/tmp/config/ssl/$(hostname)-cert.pem" ] \
     && [ -e "/tmp/config/ssl/$(hostname)-key.pem"  ] \
     && [ -e "/tmp/config/ssl/$(hostname)-combined.pem" ] \
-    && [ -e "/tmp/config/ssl/demoCA/cacert.pem" ]; then
+    && [ -e "/tmp/config/ssl/cacert.pem" ]; then
       echo "Adding $(hostname) SSL certificate"
       mkdir -p /etc/postfix/ssl
       cp "/tmp/config/ssl/$(hostname)-cert.pem" /etc/postfix/ssl
@@ -160,7 +160,7 @@ case $SSL_TYPE in
       # Force permission on key file
       chmod 600 /etc/postfix/ssl/$(hostname)-key.pem
       cp "/tmp/config/ssl/$(hostname)-combined.pem" /etc/postfix/ssl
-      cp /tmp/config/ssl/demoCA/cacert.pem /etc/postfix/ssl
+      cp /tmp/config/ssl/cacert.pem /etc/postfix/ssl
 
       # Postfix configuration
       sed -i -r 's/smtpd_tls_cert_file=\/etc\/ssl\/certs\/ssl-cert-snakeoil.pem/smtpd_tls_cert_file=\/etc\/postfix\/ssl\/'$(hostname)'-cert.pem/g' /etc/postfix/main.cf
@@ -316,8 +316,8 @@ fi
 
 # Start services related to SMTP
 if [ "$DISABLE_SPAMASSASSIN" = 1 ]; then
-  echo "Disabling spamassasin services"
-  touch /etc/service/spamassasin/down
+  echo "Disabling spamassassin services"
+  touch /etc/service/spamassassin/down
 fi
 if [ "$DISABLE_CLAMAV" = 1 ]; then
   echo "Disabling clamav services"

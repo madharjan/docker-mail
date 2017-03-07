@@ -17,8 +17,6 @@ apt-get install -y --no-install-recommends \
 mkdir -p /etc/service/postfix
 cp ${POSTFIX_BUILD_PATH}/postfix.runit /etc/service/postfix/run
 chmod 750 /etc/service/postfix/run
-#cp ${POSTFIX_BUILD_PATH}/postfix.finish /etc/service/postfix/finish
-#chmod 750 /etc/service/postfix/finish
 
 ## Add user vmal
 groupadd -g 5000 vmail

@@ -40,7 +40,7 @@
 }
 
 @test "checking process: spamassassin (spamassassin disabled by DISABLE_SPAMASSASSIN)" {
-  run docker exec mail_disabled_spamassassin /bin/bash -c "ps aux | grep -v grep | grep ''/usr/sbin/spamd'"
+  run docker exec mail_disabled_spamassassin /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/spamd'"
   [ "$status" -eq 1 ]
 }
 
@@ -305,7 +305,13 @@
 
 # ssl
 @test "checking ssl: generated default cert works correctly" {
-  run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:587 -starttls smtp -CApath /etc/ssl/certs/ | grep 'Verify return code: 0 (ok)'"
+  run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:995 -CApath /etc/ssl/certs/ | grep 'Verify return code: 18 (self signed certificate)'"
+  [ "$status" -eq 0 ]
+  run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:993 -CApath /etc/ssl/certs/ | grep 'Verify return code: 18 (self signed certificate)'"
+  [ "$status" -eq 0 ]
+  run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:587 -starttls smtp -CApath /etc/ssl/certs/ | grep 'Verify return code: 18 (self signed certificate)'"
+  [ "$status" -eq 0 ]
+  run docker exec mail /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:143 -starttls imap -CApath /etc/ssl/certs/ | grep 'Verify return code: 18 (self signed certificate)'"
   [ "$status" -eq 0 ]
 }
 
@@ -339,7 +345,13 @@
 }
 
 @test "checking ssl: certbot cert works correctly" {
+  run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:995 -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
+  [ "$status" -eq 0 ]
+  run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:993 -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
+  [ "$status" -eq 0 ]
   run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:587 -starttls smtp -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
+  [ "$status" -eq 0 ]
+  run docker exec mail_pop3 /bin/sh -c "timeout 1 openssl s_client -connect 0.0.0.0:143 -starttls imap -CApath /etc/ssl/certs/ | grep 'Verify return code: 10 (certificate has expired)'"
   [ "$status" -eq 0 ]
 }
 
@@ -373,13 +385,14 @@
 
   docker stop fail-auth-mailer ||  true
   docker rm fail-auth-mailer || true
+
   # Create a container which will send wront authentications and should banned
-  docker run --name fail-auth-mailer -e MAIL_FAIL2BAN_IP=$MAIL_FAIL2BAN_IP -v "$(pwd)/test":/tmp/test -d $(docker inspect --format '{{ .Config.Image }}' mail) tail -f /var/log/faillog
+  docker run --name fail-auth-mailer -e MAIL_FAIL2BAN_IP=$MAIL_FAIL2BAN_IP -v "$(pwd)/test":/tmp/test -d $(docker inspect --format '{{ .Config.Image }}' mail) /sbin/my_init --skip-startup-files --quiet
 
   docker exec fail-auth-mailer /bin/sh -c 'nc $MAIL_FAIL2BAN_IP 25 < /tmp/test/auth/smtp-auth-login-wrong.txt'
   docker exec fail-auth-mailer /bin/sh -c 'nc $MAIL_FAIL2BAN_IP 25 < /tmp/test/auth/smtp-auth-login-wrong.txt'
 
-  sleep 5
+  sleep 8
 
   # Checking that FAIL_AUTH_MAILER_IP is banned in mail_fail2ban
   FAIL_AUTH_MAILER_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' fail-auth-mailer)
@@ -390,6 +403,7 @@
   # Checking that FAIL_AUTH_MAILER_IP is banned by iptables
   run docker exec mail_fail2ban /bin/sh -c "iptables -L fail2ban-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
   [ "$status" -eq 0 ]
+
 }
 
 @test "checking fail2ban: unban ip works" {
@@ -405,6 +419,9 @@
   # Checking that FAIL_AUTH_MAILER_IP is unbanned by iptables
   run docker exec mail_fail2ban /bin/sh -c "iptables -L fail2ban-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
   [ "$status" -eq 1 ]
+
+  docker stop fail-auth-mailer ||  true
+  docker rm fail-auth-mailer
 }
 
 # system

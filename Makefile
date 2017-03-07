@@ -1,8 +1,8 @@
 
 NAME = madharjan/docker-mail
 POSTFIX_VERSION = 2.11
-DOVECOT_VERSION = 2.2.0
-VERSION = 2.11-2.2.9
+DOVECOT_VERSION = 2.2.9
+VERSION = $(POSTFIX_VERSION)-$(DOVECOT_VERSION)
 
 .PHONY: all build generate_users run fixtures tests tag_latest release clean_images
 
@@ -29,6 +29,7 @@ generate_users:
 
 run:
 	docker run -d --name mail \
+		-e DEBUG=true \
 		-e ENABLE_MANAGESIEVE=1 \
 		-e SA_TAG=1.0 \
 		-e SA_TAG2=2.0 \
@@ -39,7 +40,7 @@ run:
 		-v "`pwd`/test/":/tmp/test \
 		-h mail.my-domain.com $(NAME):$(VERSION) /sbin/my_init
 
-	sleep 5
+	sleep 15
 
 	docker run -d --name mail_pop3 \
 		-e DISABLE_CLAMAV=1 \
@@ -50,7 +51,7 @@ run:
 		-v "`pwd`/test/certbot":/etc/certbot/live \
 		-h mail.my-domain.com $(NAME):$(VERSION) /sbin/my_init
 
-	sleep 5
+	sleep 10
 
 	docker run -d --name mail_smtponly \
 		-e DISABLE_CLAMAV=1 \
@@ -59,7 +60,7 @@ run:
 		-v "`pwd`/test/":/tmp/test \
 		-h mail.my-domain.com $(NAME):$(VERSION) /sbin/my_init
 
-	sleep 5
+	sleep 10
 
 	docker run -d --name mail_fail2ban \
 		-e DISABLE_CLAMAV=1 \
@@ -69,25 +70,33 @@ run:
 		-v "`pwd`/test/":/tmp/test \
 		-h mail.my-domain.com $(NAME):$(VERSION) /sbin/my_init
 
-	sleep 5
+	sleep 10
+
+	docker run -d --name mail_disabled_amavis \
+		-e DISABLE_CLAMAV=1 \
+		-e DISABLE_AMAVIS=1 \
+		-v "`pwd`/test/config":/tmp/config \
+		-v "`pwd`/test/":/tmp/test \
+		-h mail.my-domain.com $(NAME):$(VERSION) /sbin/my_init
+
+	sleep 10
 
 	docker run -d --name mail_disabled_spamassassin \
 		-e DISABLE_CLAMAV=1 \
-		-e DISABLE_SPAMASSASIN=1 \
+		-e DISABLE_SPAMASSASSIN=1 \
 		-v "`pwd`/test/config":/tmp/config \
 		-v "`pwd`/test/":/tmp/test \
 		-h mail.my-domain.com $(NAME):$(VERSION) /sbin/my_init
 
-	sleep 5
+	sleep 10
 
 	docker run -d --name mail_disabled_clamav \
 		-e DISABLE_CLAMAV=1 \
-		-e DISABLE_CLAMAV=1 \
 		-v "`pwd`/test/config":/tmp/config \
 		-v "`pwd`/test/":/tmp/test \
 		-h mail.my-domain.com $(NAME):$(VERSION) /sbin/my_init
 
-	sleep 5
+	sleep 15
 
 fixtures:
 	# Setup sieve & create filtering folder (INBOX/spam)
@@ -95,16 +104,27 @@ fixtures:
 	docker exec mail /bin/sh -c "maildirmake.dovecot /var/mail/localhost.localdomain/user1/.INBOX.spam"
 	docker exec mail /bin/sh -c "chown 5000:5000 -R /var/mail/localhost.localdomain/user1/.INBOX.spam"
 	# Sending test mails
+	sleep 10
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/amavis-spam.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/amavis-virus.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/existing-alias-external.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/existing-alias-local.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/existing-user.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/existing-user-and-cc-local-alias.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/existing-regexp-alias-external.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/existing-regexp-alias-local.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/existing-catchall-local.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/sieve-spam-folder.txt"
+	sleep 2
 	docker exec mail /bin/sh -c "nc 0.0.0.0 25 < /tmp/test/emails/non-existing-user.txt"
 	# Wait for mails to be analyzed
 	sleep 10
@@ -113,10 +133,8 @@ tests:
 	./bats/bin/bats test/tests.bats
 
 clean:
-	docker stop mail mail_pop3 mail_smtponly mail_fail2ban mail_disabled_spamassassin mail_disabled_clamav
-	docker rm mail mail_pop3 mail_smtponly mail_fail2ban mail_disabled_spamassassin mail_disabled_clamav
-	docker stop fail-auth-mailer || true
-	docker rm fail-auth-mailer || true
+	docker stop mail mail_pop3 mail_smtponly mail_fail2ban mail_disabled_amavis mail_disabled_spamassassin mail_disabled_clamav || true
+	docker rm mail mail_pop3 mail_smtponly mail_fail2ban mail_disabled_amavis mail_disabled_spamassassin mail_disabled_clamav
 
 tag_latest:
 	docker tag $(NAME):$(VERSION) $(NAME):latest
