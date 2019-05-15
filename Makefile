@@ -4,16 +4,29 @@ POSTFIX_VERSION = 2.11
 DOVECOT_VERSION = 2.2.9
 VERSION = $(POSTFIX_VERSION)-$(DOVECOT_VERSION)
 
-.PHONY: all build generate_users run fixtures tests tag_latest release clean_images
+DEBUG ?= true
+
+DOCKER_USERNAME ?= $(shell read -p "DockerHub Username: " pwd; echo $$pwd)
+DOCKER_PASSWORD ?= $(shell stty -echo; read -p "DockerHub Password: " pwd; stty echo; echo $$pwd)
+DOCKER_LOGIN ?= $(shell cat ~/.docker/config.json | grep "docker.io" | wc -l)
+
+.PHONY: all build generate_users run fixtures test stop clean tag_latest release clean_images
 
 all: build
+
+docker_login:
+ifeq ($(DOCKER_LOGIN), 1)
+		@echo "Already login to DockerHub"
+else
+		@docker login -u $(DOCKER_USERNAME) -p $(DOCKER_PASSWORD)
+endif
 
 build:
 	docker build  \
 	--build-arg POSTFIX_VERSION=$(POSTFIX_VERSION) \
 	--build-arg DOVECOT_VERSION=$(DOVECOT_VERSION) \
 	--build-arg VCS_REF=`git rev-parse --short HEAD` \
-	--build-arg DEBUG=true \
+	--build-arg DEBUG=$(DEBUG) \
 	-t $(NAME):$(VERSION) --rm .
 
 generate_users:
@@ -28,8 +41,9 @@ generate_users:
 	$(NAME):$(VERSION) /bin/sh -c 'echo "$$MAIL_USER|$$(doveadm pw -s SHA512-CRYPT -u $$MAIL_USER -p $$MAIL_PASS)"' >> test/config/postfix-accounts.cf
 
 run:
+	@if ! docker images $(NAME) | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME) version $(VERSION) is not yet built. Please run 'make build'"; false; fi
 	docker run -d --name mail \
-		-e DEBUG=true \
+		-e DEBUG=$(DEBUG) \
 		-e ENABLE_MANAGESIEVE=1 \
 		-e SA_TAG=1.0 \
 		-e SA_TAG2=2.0 \
@@ -43,6 +57,7 @@ run:
 	sleep 15
 
 	docker run -d --name mail_pop3 \
+		-e DEBUG=$(DEBUG) \
 		-e DISABLE_CLAMAV=1 \
 		-e ENABLE_POP3=1 \
 		-e SSL_TYPE=certbot \
@@ -54,6 +69,7 @@ run:
 	sleep 10
 
 	docker run -d --name mail_smtponly \
+		-e DEBUG=$(DEBUG) \
 		-e DISABLE_CLAMAV=1 \
 		-e SMTP_ONLY=1 \
 		-v "`pwd`/test/config":/tmp/config \
@@ -63,6 +79,7 @@ run:
 	sleep 10
 
 	docker run -d --name mail_fail2ban \
+		-e DEBUG=$(DEBUG) \
 		-e DISABLE_CLAMAV=1 \
 		-e ENABLE_FAIL2BAN=1 \
 		--cap-add=NET_ADMIN \
@@ -73,6 +90,7 @@ run:
 	sleep 10
 
 	docker run -d --name mail_disabled_amavis \
+		-e DEBUG=$(DEBUG) \
 		-e DISABLE_CLAMAV=1 \
 		-e DISABLE_AMAVIS=1 \
 		-v "`pwd`/test/config":/tmp/config \
@@ -82,6 +100,7 @@ run:
 	sleep 10
 
 	docker run -d --name mail_disabled_spamassassin \
+		-e DEBUG=$(DEBUG) \
 		-e DISABLE_CLAMAV=1 \
 		-e DISABLE_SPAMASSASSIN=1 \
 		-v "`pwd`/test/config":/tmp/config \
@@ -91,6 +110,7 @@ run:
 	sleep 10
 
 	docker run -d --name mail_disabled_clamav \
+		-e DEBUG=$(DEBUG) \
 		-e DISABLE_CLAMAV=1 \
 		-v "`pwd`/test/config":/tmp/config \
 		-v "`pwd`/test/":/tmp/test \
@@ -129,21 +149,25 @@ fixtures:
 	# Wait for mails to be analyzed
 	sleep 10
 
-tests:
+test:
 	./bats/bin/bats test/tests.bats
 
 clean:
-	docker stop mail mail_pop3 mail_smtponly mail_fail2ban mail_disabled_amavis mail_disabled_spamassassin mail_disabled_clamav || true
-	docker rm mail mail_pop3 mail_smtponly mail_fail2ban mail_disabled_amavis mail_disabled_spamassassin mail_disabled_clamav
+	docker stop mail mail_pop3 mail_smtponly mail_fail2ban mail_disabled_amavis mail_disabled_spamassassin mail_disabled_clamav 2> /dev/null || true
+	docker rm mail mail_pop3 mail_smtponly mail_fail2ban mail_disabled_amavis mail_disabled_spamassassin mail_disabled_clamav 2> /dev/null || true
+	docker images | grep "<none>" | awk '{print$3 }' | xargs docker rmi 2> /dev/null || true
+
+publish: docker_login run test clean
+	docker push $(NAME)
 
 tag_latest:
 	docker tag $(NAME):$(VERSION) $(NAME):latest
 
-release: run fixtures tests clean tag_latest
-	@if ! docker images $(NAME) | awk '{ print $$2 }' | grep -q -F $(VERSION); then echo "$(NAME) version $(VERSION) is not yet built. Please run 'make build'"; false; fi
-	@if ! head -n 1 Changelog.md | grep -q 'release date'; then echo 'Please note the release date in Changelog.md.' && false; fi
+release: docker_login run fixtures test clean tag_latest
 	docker push $(NAME)
-	@echo "*** Don't forget to create a tag. git tag $(VERSION) && git push origin $(VERSION) ***"
 
-clean_images:
-	docker rmi $(NAME):latest $(NAME):$(VERSION) || true
+clean_images: clean
+	docker rmi $(NAME):latest $(NAME):$(VERSION) 2> /dev/null || true
+	docker logout 
+
+

@@ -1,0 +1,97 @@
+#!/bin/sh
+
+set e
+
+if [ "${DEBUG}" = true ]; then
+  set -x
+fi
+
+VERSION=2.11-2.2.9
+
+DEF_VOLUME_HOME=/opt/docker
+DEF_NAME=mail
+
+DEF_DISABLE_AMAVIS=0
+DEF_DISABLE_CLAMAV=0
+DEF_DISABLE_SPAMASSASSIN=0
+DEF_ENABLE_POP3=0
+DEF_ENABLE_FAIL2BAN=0
+DEF_ENABLE_MANAGESIEVE=0
+DEF_SA_TAG=2.0
+DEF_SA_TAG2=6.31
+DEF_SA_KILL=6.31
+DEF_SASL_PASSWD=
+DEF_SMTP_ONLY=0
+DEF_SSL_TYPE=certbot
+
+VOLUME_HOME=${VOLUME_HOME:-$DEF_VOLUME_HOME}
+NAME=${NAME:-$DEF_NAME}
+
+DISABLE_AMAVIS=${DISABLE_AMAVIS:-$DEF_DISABLE_AMAVIS}
+DISABLE_CLAMAV=${DISABLE_CLAMAV:-$DEF_DISABLE_CLAMAV}
+DISABLE_SPAMASSASSIN=${DISABLE_SPAMASSASSIN:-$DEF_DISABLE_SPAMASSASSIN}
+ENABLE_POP3=${ENABLE_POP3:-$DEF_ENABLE_POP3}
+ENABLE_FAIL2BAN=${ENABLE_FAIL2BAN:-$DEF_ENABLE_FAIL2BAN}
+ENABLE_MANAGESIEVE=${ENABLE_MANAGESIEVE:-$DEF_ENABLE_MANAGESIEVE}
+SA_TAG=${SA_TAG:-$DEF_SA_TAG}
+SA_TAG2=${SA_TAG2:-$DEF_SA_TAG2}
+SA_KILL=${SA_KILL:-$DEF_SA_KILL}
+SASL_PASSWD=${SASL_PASSWD:-$DEF_SASL_PASSWD}
+SMTP_ONLY=${SMTP_ONLY:-$DEF_SMTP_ONLY}
+SSL_TYPE=${SSL_TYPE:-$DEF_SSL_TYPE}
+
+DEF_PORTS=25:25,587:587,993:993,995:995
+PORTS=${PORTS:-$DEF_PORTS}
+
+if [ -z ${PORTS} ]; then
+  PORTS_LINE=""
+else 
+  OIFS=$IFS
+  IFS=','
+  for PORT in $PORTS
+  do
+     PORTS_LINE="${PORTS_LINE} -p ${PORT} "
+  done
+  IFS=$OIFS
+fi
+
+/bin/cat <<-EOF
+[Unit]
+Description=Mail
+
+After=docker.service
+
+[Service]
+TimeoutStartSec=0
+
+ExecStartPre=-/bin/mkdir -p ${VOLUME_HOME}/${NAME}
+ExecStartPre=-/usr/bin/docker stop ${NAME}
+ExecStartPre=-/usr/bin/docker rm ${NAME}
+ExecStartPre=-/usr/bin/docker pull madharjan/docker-mail:${VERSION}
+
+ExecStart=/usr/bin/docker run \
+  -e DISABLE_AMAVIS=${DISABLE_AMAVIS} \
+  -e DISABLE_CLAMAV=${DISABLE_CLAMAV} \
+  -e DISABLE_SPAMASSASSIN=${DISABLE_SPAMASSASSIN} \
+  -e ENABLE_POP3=${ENABLE_POP3} \
+  -e ENABLE_FAIL2BAN=${ENABLE_FAIL2BAN} \
+  -e ENABLE_MANAGESIEVE=${ENABLE_MANAGESIEVE} \
+  -e SA_TAG=${SA_TAG} \
+  -e SA_TAG2=${SA_TAG2} \
+  -e SA_KILL=${SA_KILL}\
+  -e SASL_PASSWD=${SASL_PASSWD} \
+  -e SMTP_ONLY=${SMTP_ONLY} \
+  -e SSL_TYPE=${SSL_TYPE} \
+  ${PORTS_LINE}-v ${VOLUME_HOME}/${NAME}/config:/tmp/config \
+  -v ${VOLUME_HOME}/${NAME}/data:/var/mail \
+  -v ${VOLUME_HOME}/${NAME}/log:/var/log/mail \
+  -v ${VOLUME_HOME}/certbot:/etc/certbot \
+  --hostname mail.${DOMAIN}
+  --name ${NAME} \
+  madharjan/docker-mail:${VERSION}
+
+ExecStop=/usr/bin/docker stop -t 2 ${NAME}
+
+[Install]
+WantedBy=multi-user.target
+EOF

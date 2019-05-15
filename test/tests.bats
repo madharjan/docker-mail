@@ -1,6 +1,7 @@
+
 # processes
 @test "checking process: postfix" {
-  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/lib/postfix/master'"
+  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/lib/postfix/sbin/master'"
   [ "$status" -eq 0 ]
 }
 
@@ -25,12 +26,12 @@
 }
 
 @test "checking process: fail2ban (disabled in default configuration)" {
-  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/bin/python /usr/bin/fail2ban-server'"
+  run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/bin/python3 /usr/bin/fail2ban-server'"
   [ "$status" -eq 1 ]
 }
 
 @test "checking process: fail2ban (fail2ban server enabled)" {
-  run docker exec mail_fail2ban /bin/bash -c "ps aux | grep -v grep | grep '/usr/bin/python /usr/bin/fail2ban-server'"
+  run docker exec mail_fail2ban /bin/bash -c "ps aux | grep -v grep | grep '/usr/bin/python3 /usr/bin/fail2ban-server'"
   [ "$status" -eq 0 ]
 }
 
@@ -49,7 +50,6 @@
   [ "$status" -eq 1 ]
 }
 
-
 # imap
 @test "checking process: dovecot imaplogin (enabled in default configuration)" {
   run docker exec mail /bin/bash -c "ps aux | grep -v grep | grep '/usr/sbin/dovecot'"
@@ -62,7 +62,7 @@
 }
 
 @test "checking imap: server is ready with STARTTLS" {
-  run docker exec mail /bin/bash -c "nc -w 2 0.0.0.0 143 | grep '* OK' | grep 'STARTTLS' | grep 'ready'"
+  run docker exec mail_pop3 /bin/bash -c "nc -w 2 0.0.0.0 143 | grep '\* OK' | grep 'STARTTLS' | grep 'ready'"
   [ "$status" -eq 0 ]
 }
 
@@ -227,7 +227,6 @@
 
 
 # spamassassin
-
 @test "checking spamassassin: variables are set correctly (default)" {
   run docker exec mail_pop3 /bin/sh -c "grep '\$sa_tag_level_deflt' /etc/amavis/conf.d/20-debian_defaults | grep '= 2.0'"
   [ "$status" -eq 0 ]
@@ -245,8 +244,6 @@
   run docker exec mail /bin/sh -c "grep '\$sa_kill_level_deflt' /etc/amavis/conf.d/20-debian_defaults | grep '= 3.0'"
   [ "$status" -eq 0 ]
 }
-
-
 
 # opendkim
 @test "checking opendkim: /etc/opendkim/KeyTable should contain 2 entries" {
@@ -409,7 +406,7 @@
   [ "$status" -eq 0 ]
 
   # Checking that FAIL_AUTH_MAILER_IP is banned by iptables
-  run docker exec mail_fail2ban /bin/sh -c "iptables -L fail2ban-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
+  run docker exec mail_fail2ban /bin/sh -c "iptables -L f2b-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
   [ "$status" -eq 0 ]
 
 }
@@ -425,7 +422,7 @@
   [ "$status" -eq 1 ]
 
   # Checking that FAIL_AUTH_MAILER_IP is unbanned by iptables
-  run docker exec mail_fail2ban /bin/sh -c "iptables -L fail2ban-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
+  run docker exec mail_fail2ban /bin/sh -c "iptables -L f2b-postfix-sasl -n | grep REJECT | grep '$FAIL_AUTH_MAILER_IP'"
   [ "$status" -eq 1 ]
 
   docker stop fail-auth-mailer ||  true

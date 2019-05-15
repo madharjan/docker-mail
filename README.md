@@ -1,30 +1,34 @@
 # docker-mail
 
-[![](https://images.microbadger.com/badges/image/madharjan/docker-mail.svg)](https://microbadger.com/images/madharjan/docker-mail "Get your own image badge on microbadger.com")
+[![Build Status](https://travis-ci.com/madharjan/docker-mail.svg?branch=master)](https://travis-ci.com/madharjan/docker-mail)
+[![Layers](https://images.microbadger.com/badges/image/madharjan/docker-mail.svg)](http://microbadger.com/images/madharjan/docker-mail)
 
 Docker container for Postfix SMTP & Dovecot IMAP/POP3 based on [madharjan/docker-base](https://github.com/madharjan/docker-base/)
 
 Mail Server configuration based on [tomav/docker-mailserver](https://github.com/tomav/docker-mailserver)
 
-**Changes**
+## Changes
+
 * Services configured as `runit` services
 * Scripts refactor-ed for baseimage `docker-base`
 
-**Features**
+## Features
+
 * Using scripts in `my_init.d` to initialize services (e.g mail-startup.sh)
 * Using scripts in `my_shutdown.d` to cleanup services before container stop (e.g postfix-stop.sh)
 * Bats ([sstephenson/bats](https://github.com/sstephenson/bats/)) based test cases
 
-## Postfix 2.11 & Dovecot 2.2.9 (docker-mail)
- - SpamAssassin 3.4.0
- - ClamAV 0.99.2
- - Fail2Ban 0.8.11
- - Manage Sieve 2.2.9
- - Certbot SSL
- - OpenDKIM 2.9.1
- - OpenDMARC 1.2.0
+### Postfix 2.11 & Dovecot 2.2.9 (docker-mail)
 
-**Environment**
+* SpamAssassin 3.4.0
+* ClamAV 0.99.2
+* Fail2Ban 0.8.11
+* Manage Sieve 2.2.9
+* Certbot SSL
+* OpenDKIM 2.9.1
+* OpenDMARC 1.2.0
+
+### Environment
 
 | Variable                  | Default | Example        |
 |---------------------------|---------|----------------|
@@ -43,43 +47,32 @@ Mail Server configuration based on [tomav/docker-mailserver](https://github.com/
 
 ## Build
 
-**Clone this project**
-```
+```bash
+# clone project
 git clone https://github.com/madharjan/docker-mail
-cd doocker-mail
-```
-
-**Build Container**
-```
-# login to DockerHub
-docker login
+cd docker-mail
 
 # build
 make
 
-# test
+# tests
+make run
+make fixtures
 make test
 
-# tag
-make tag_latest
-
-# update Changelog.md
-# release
-make release
+# clean
+make clean
 ```
 
-**Tag and Commit to Git**
-```
-git tag 2.11-2.2.9
-git push origin 2.11-2.2.9
-```
+## Run
 
-## Run Container
+**Note**: update environment variables below as necessary
 
 ### Postfix SMTP, Dovecot IMAP/POP3
 
 **Run Certbot to create SSL certificate for `mail.${DOMAIN}`**
-```
+
+```bash
 docker exec --rm \
    -e EMAIL=me@email.com \
    -e DOMAIN=company.com \
@@ -90,15 +83,18 @@ docker exec --rm \
 ```
 
 **Generate DKIM keys**
-```
+
+```bash
 docker run --rm \
   -v /opt/docker/mail/config:/tmp/config \
   madharjan/doocker-mail:2.11-2.2.9 /bin/sh -c "generate-dkim-config"
 ```
+
 DKIM keys are generated, configure DNS server with DKIM keys from `config/opedkim/keys/domain.tld/mail.txt`
 
 **Create mail users**
-```
+
+```bash
 docker exec --rm \
    -e USERNAME=user1 \
    -e DOMAIN=company.com \
@@ -108,7 +104,8 @@ docker exec --rm \
 ```
 
 **Run `docker-mail` container**
-```
+
+```bash
 docker stop mail
 docker rm mail
 
@@ -135,8 +132,11 @@ docker run -d \
   madharjan/docker-mail:2.11-2.2.9
 ```
 
-**Systemd Unit File**
-```
+## Systemd Unit File
+
+**Note**: update environment variables below as necessary
+
+```txt
 [Unit]
 Description=Mail
 
@@ -176,4 +176,42 @@ ExecStop=/usr/bin/docker stop -t 2 mail
 
 [Install]
 WantedBy=multi-user.target
+```
+
+## Generate Systemd Unit File
+
+| Variable                 | Default                       | Example        |
+|--------------------------|-------------------------------|----------------|
+| VOLUME_HOME              | /opt/docker                   | /opt/data      |
+| NAME                     | mail                          |                |
+|                          |                               |                |
+| DOMAIN                   |                               | mycompany.com  |
+| DISABLE_AMAVIS           | 0                             | 1 (to disable) |
+| DISABLE_CLAMAV           | 0                             | 1 (to disable) |
+| DISABLE_SPAMASSASSIN     | 0                             | 1 (to disable) |
+| ENABLE_FAIL2BAN          | 0                             | 1 (to enable)  |
+| ENABLE_MANAGESIEVE       | 0                             | 1 (to enable)  |
+| ENABLE_POP3              | 0                             | 1 (to enable)  |
+| SMTP_ONLY                | 0                             | 1 (to enable)  |
+| SSL_TYPE                 | certbot                       |                |
+| SASL_PASSWD              |                               | Pa$$           |
+| SA_TAG                   | 2.0                           |                |
+| SA_TAG2                  | 6.31                          |                |
+| SA_KILL                  | 6.31                          |                |
+| PORTS                    | 25:25,587:587,993:993,995:995 |                |
+
+```bash
+# generate mail.service
+docker run --rm \
+  -e PORT=8080 \
+  -e VOLUME_HOME=/opt/docker \
+  -e NAME=mail \
+  -e DOMAIN=mycompany.com \
+  -e SASL_PASSWD=Pa55w0rd \
+  madharjan/docker-mail:2.11-2.2.9 \
+  mail-systemd-unit | \
+  sudo tee /etc/systemd/system/mail.service
+
+sudo systemctl enable mail
+sudo systemctl start mail
 ```

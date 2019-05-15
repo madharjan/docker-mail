@@ -67,16 +67,16 @@ cp ${FAIL2BAN_CONFIG_PATH}/jail.conf /etc/fail2ban/jail.conf
 cp ${FAIL2BAN_CONFIG_PATH}/filter.d/dovecot.conf /etc/fail2ban/filter.d/dovecot.conf
 
 mkdir -p /etc/my_init.d
-cp /build/services/mail-startup.sh /etc/my_init.d
-cp /build/services/postfix-chroot.sh /etc/my_init.d
-chmod 750 /etc/my_init.d/mail-startup.sh
-chmod 750 /etc/my_init.d/postfix-chroot.sh
+cp /build/services/20-mail.sh /etc/my_init.d
+cp /build/services/21-postfix.sh /etc/my_init.d
+chmod 750 /etc/my_init.d/20-mail.sh
+chmod 750 /etc/my_init.d/21-postfix.sh
 
 mkdir -p /etc/my_shutdown.d
-cp /build/services/postfix-stop.sh /etc/my_shutdown.d
-cp /build/services/fail2ban-stop.sh /etc/my_shutdown.d
-chmod 750 /etc/my_shutdown.d/fail2ban-stop.sh
-chmod 750 /etc/my_shutdown.d/postfix-stop.sh
+cp /build/services/80-postfix.sh /etc/my_shutdown.d
+cp /build/services/81-fail2ban.sh /etc/my_shutdown.d
+chmod 750 /etc/my_shutdown.d/80-postfix.sh
+chmod 750 /etc/my_shutdown.d/81-fail2ban.sh
 
 cp /build/bin/addmailuser /usr/local/bin
 cp /build/bin/delmailuser /usr/local/bin

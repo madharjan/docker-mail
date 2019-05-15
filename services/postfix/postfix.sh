@@ -12,7 +12,9 @@ POSTFIX_BUILD_PATH=/build/services/postfix
 ## Install postfix
 apt-get install -y --no-install-recommends \
   postfix \
-  ssl-cert
+  ssl-cert \
+  netcat \
+  iproute
 
 mkdir -p /etc/service/postfix
 cp ${POSTFIX_BUILD_PATH}/postfix.runit /etc/service/postfix/run
@@ -25,6 +27,6 @@ chown -R vmail:vmail /var/mail
 
 ## Configure logrotate.
 mkdir -p /var/log/mail
-chown root:syslog /var/log/mail
+chown root:adm /var/log/mail
 sed -i -r 's|/var/log/mail|/var/log/mail/mail|g' /etc/syslog-ng/syslog-ng.conf
 sed -i -r 's|/var/log/mail|/var/log/mail/mail|g' /etc/logrotate.d/syslog-ng

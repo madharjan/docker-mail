@@ -17,6 +17,7 @@ SASL_PASSWD=${SASL_PASSWD:-}
 SA_TAG=${SA_TAG:-}
 SA_TAG2=${SA_TAG2:-}
 SA_KILL=${SA_KILL:-}
+SSL_TYPE=${SSL_TYPE:-NONE}
 
 # Users
 if [ -f /tmp/config/postfix-accounts.cf ]; then
@@ -118,7 +119,9 @@ fi
 if [ `cat /etc/opendmarc.conf | grep -e '^TrustedAuthservIDs .*' | wc -l` -eq 0 ]; then
   echo "TrustedAuthservIDs $(hostname)" >> /etc/opendmarc.conf
 fi
-if [ ! -f "/etc/opendmarc/ignore.hosts" ]; then
+if [ -f "/etc/opendmarc/ignore.hosts" ]; then
+  echo "ignore.hosts already exists"
+else
   mkdir -p /etc/opendmarc/
   echo "localhost" >> /etc/opendmarc/ignore.hosts
 fi
@@ -140,8 +143,9 @@ case $SSL_TYPE in
       sed -i -r 's/smtpd_tls_key_file=\/etc\/ssl\/private\/ssl-cert-snakeoil.key/smtpd_tls_key_file=\/etc\/certbot\/live\/'$(hostname)'\/privkey.pem/g' /etc/postfix/main.cf
 
       # Dovecot configuration
-      sed -i -e 's/ssl_cert = <\/etc\/dovecot\/dovecot\.pem/ssl_cert = <\/etc\/certbot\/live\/'$(hostname)'\/fullchain\.pem/g' /etc/dovecot/conf.d/10-ssl.conf
-      sed -i -e 's/ssl_key = <\/etc\/dovecot\/private\/dovecot\.pem/ssl_key = <\/etc\/certbot\/live\/'$(hostname)'\/privkey\.pem/g' /etc/dovecot/conf.d/10-ssl.conf
+      sed -i -e 's/#ssl_cert = <\/etc\/dovecot\/dovecot\.pem/ssl_cert = <\/etc\/certbot\/live\/'$(hostname)'\/fullchain\.pem/g' /etc/dovecot/conf.d/10-ssl.conf
+      sed -i -e 's/#ssl_key = <\/etc\/dovecot\/private\/dovecot\.pem/ssl_key = <\/etc\/certbot\/live\/'$(hostname)'\/privkey\.pem/g' /etc/dovecot/conf.d/10-ssl.conf
+      sed -i -e 's/ssl = no/ssl = required/g' /etc/dovecot/conf.d/10-ssl.conf
 
       echo "SSL configured with 'certbot' certificates"
     fi
@@ -170,12 +174,20 @@ case $SSL_TYPE in
       ln -s /etc/postfix/ssl/cacert.pem "/etc/ssl/certs/cacert-$(hostname).pem"
 
       # Dovecot configuration
-      sed -i -e 's/ssl_cert = <\/etc\/dovecot\/dovecot\.pem/ssl_cert = <\/etc\/postfix\/ssl\/'$(hostname)'-combined\.pem/g' /etc/dovecot/conf.d/10-ssl.conf
-      sed -i -e 's/ssl_key = <\/etc\/dovecot\/private\/dovecot\.pem/ssl_key = <\/etc\/postfix\/ssl\/'$(hostname)'-key\.pem/g' /etc/dovecot/conf.d/10-ssl.conf
+      sed -i -e 's/#ssl_cert = <\/etc\/dovecot\/dovecot\.pem/ssl_cert = <\/etc\/postfix\/ssl\/'$(hostname)'-combined\.pem/g' /etc/dovecot/conf.d/10-ssl.conf
+      sed -i -e 's/#ssl_key = <\/etc\/dovecot\/private\/dovecot\.pem/ssl_key = <\/etc\/postfix\/ssl\/'$(hostname)'-key\.pem/g' /etc/dovecot/conf.d/10-ssl.conf
+      sed -i -e 's/ssl = no/ssl = required/g' /etc/dovecot/conf.d/10-ssl.conf
 
       echo "SSL configured with 'self-signed' certificates"
 
     fi
+    ;;
+
+    "NONE" )
+      # Dovecot configuration
+      sed -i -e 's/#ssl_cert = <\/etc\/dovecot\/dovecot\.pem/ssl_cert = <\/etc\/ssl\/certs\/ssl-cert-snakeoil.pem/g' /etc/dovecot/conf.d/10-ssl.conf
+      sed -i -e 's/#ssl_key = <\/etc\/dovecot\/private\/dovecot\.pem/ssl_key = <\/etc\/ssl\/private\/ssl-cert-snakeoil.key/g' /etc/dovecot/conf.d/10-ssl.conf
+      sed -i -e 's/ssl = no/ssl = required/g' /etc/dovecot/conf.d/10-ssl.conf
     ;;
 esac
 

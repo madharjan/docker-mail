@@ -2,4 +2,4 @@
 
 set -e
 
-exec /usr/lib/postfix/master -d -c /etc/postfix
+exec /usr/lib/postfix/sbin/master -d -c /etc/postfix

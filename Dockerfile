@@ -1,4 +1,4 @@
-FROM madharjan/docker-base:14.04
+FROM madharjan/docker-base:16.04
 MAINTAINER Madhav Raj Maharjan <madhav.maharjan@gmail.com>
 
 ARG VCS_REF
@@ -15,7 +15,7 @@ ENV DOVECOT_VERSION ${DOVECOT_VERSION}
 RUN mkdir -p /build
 COPY . /build
 
-RUN /build/scripts/install.sh && /build/scripts/cleanup.sh
+RUN chmod 755 /build/scripts/*.sh && /build/scripts/install.sh && /build/scripts/cleanup.sh
 
 VOLUME ["/etc/postfix","/etc/dovecot","/var/mail","/var/log/mail"]
 
