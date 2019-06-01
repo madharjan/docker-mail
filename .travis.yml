@@ -14,4 +14,4 @@ jobs:
       - make build DEBUG=false
       - make tag_latest DEBUG=false
       - make release DEBUG=false
-      - curl -s -X POST "https://hooks.microbadger.com/images/${TRAVIS_REPO_SLUG}/#####################"
+      - curl -s -X POST "https://hooks.microbadger.com/images/madharjan/docker-mail/NBIL8waZwNMRkGEAb4GZQa4wuc8="
