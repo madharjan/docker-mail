@@ -1,6 +1,7 @@
 #!/bin/sh
 
 touch /tmp/vhost.tmp
+touch /tmp/config/postfix-virtual.cf
 
 # Getting domains from mail accounts
 while IFS=$'|' read login pass

@@ -3,14 +3,18 @@
 DATABASE=/tmp/config/postfix-accounts.cf
 
 function usage {
- echo "Usage: delmailuser <user@domain.tld>"
+ echo "Usage: delete-mail-user <user@domain.tld>"
  exit 1
 }
 
-if [ ! -z "$1" ]; then
- USER=$1
+USER=${USERNAME:-$1}
+
+if [ ! -z "$USER" ]; then
+
  ENTRIES=$(grep "$USER" -vi $DATABASE)
  echo "$ENTRIES" > $DATABASE
+
 else
  usage
+ 
 fi

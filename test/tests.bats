@@ -481,7 +481,7 @@
 
 # accounts
 @test "checking accounts: user3 should have been added to /tmp/config/postfix-accounts.cf" {
-  docker exec mail /bin/sh -c "addmailuser user3@domain.tld mypassword"
+  docker exec mail /bin/sh -c "add-mail-user user3@domain.tld mypassword"
 
   run docker exec mail /bin/sh -c "grep user3@domain.tld -i /tmp/config/postfix-accounts.cf"
   [ "$status" -eq 0 ]
@@ -489,7 +489,7 @@
 }
 
 @test "checking accounts: user3 should have been removed from /tmp/config/postfix-accounts.cf" {
-  docker exec mail /bin/sh -c "delmailuser user3@domain.tld"
+  docker exec mail /bin/sh -c "delete-mail-user user3@domain.tld"
 
   run docker exec mail /bin/sh -c "grep user3@domain.tld -i /tmp/config/postfix-accounts.cf"
   [ "$status" -eq 1 ]

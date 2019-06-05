@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set e
+
+if [ "${DEBUG}" = true ]; then
+  set -x
+fi
+
+EMAIL=${EMAIL:-}
+DOMAIN=${DOMAIN:-}
+
+/usr/local/sbin/certbot-auto certonly -n \
+  --no-self-upgrade \
+  --agree-tos \
+  --standalone \
+  --config-dir /etc/certbot \
+  --logs-dir /var/log/certbot \
+  -m ${EMAIL} \
+  -d mail.${DOMAIN}

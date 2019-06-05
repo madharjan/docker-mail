@@ -1,8 +1,8 @@
-## 16.04 
+## 3.10-2.2.22
 
 ### Changes
 
-* Updated to be based on madharjan/docker*base:14.04
+* Updated to be based on madharjan/docker-base:16.04
 * Using
    * Postfix 3.10
    * Dovecot 2.2.22
@@ -14,11 +14,11 @@
    * OpenDKIM 2.10.3
    * OpenDMARC 1.3.1
 
-## 14.04
+## 2.11-2.2.9
 
 ### Changes
 
-* Based on madharjan/docker*base:14.04
+* Based on madharjan/docker-base:14.04
 * Using
    * Postfix 2.11
    * Dovecot 2.2.9

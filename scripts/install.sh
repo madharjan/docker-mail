@@ -78,12 +78,17 @@ cp /build/services/81-fail2ban.sh /etc/my_shutdown.d
 chmod 750 /etc/my_shutdown.d/80-postfix.sh
 chmod 750 /etc/my_shutdown.d/81-fail2ban.sh
 
-cp /build/bin/addmailuser /usr/local/bin
-cp /build/bin/delmailuser /usr/local/bin
+cp /build/bin/add-mail-user /usr/local/bin
+cp /build/bin/delete-mail-user /usr/local/bin
+cp /build/bin/generate-mail-cert /usr/local/bin
 cp /build/bin/generate-dkim-config /usr/local/bin
-chmod 750 /usr/local/bin/addmailuser
-chmod 750 /usr/local/bin/delmailuser
+cp /build/bin/mail-systemd-unit /usr/local/bin
+
+chmod 750 /usr/local/bin/add-mail-user
+chmod 750 /usr/local/bin/delete-mail-user
+chmod 750 /usr/local/bin/generate-mail-cert
 chmod 750 /usr/local/bin/generate-dkim-config
+chmod 750 /usr/local/bin/mail-systemd-unit
 
 # Get LetsEncrypt signed certificate
 curl -s https://letsencrypt.org/certs/lets-encrypt-x1-cross-signed.pem > /etc/ssl/certs/lets-encrypt-x1-cross-signed.pem

@@ -69,25 +69,26 @@ ExecStartPre=-/usr/bin/docker stop ${NAME}
 ExecStartPre=-/usr/bin/docker rm ${NAME}
 ExecStartPre=-/usr/bin/docker pull madharjan/docker-mail:${VERSION}
 
-ExecStart=/usr/bin/docker run \
-  -e DISABLE_AMAVIS=${DISABLE_AMAVIS} \
-  -e DISABLE_CLAMAV=${DISABLE_CLAMAV} \
-  -e DISABLE_SPAMASSASSIN=${DISABLE_SPAMASSASSIN} \
-  -e ENABLE_POP3=${ENABLE_POP3} \
-  -e ENABLE_FAIL2BAN=${ENABLE_FAIL2BAN} \
-  -e ENABLE_MANAGESIEVE=${ENABLE_MANAGESIEVE} \
-  -e SA_TAG=${SA_TAG} \
-  -e SA_TAG2=${SA_TAG2} \
-  -e SA_KILL=${SA_KILL}\
-  -e SASL_PASSWD=${SASL_PASSWD} \
-  -e SMTP_ONLY=${SMTP_ONLY} \
-  -e SSL_TYPE=${SSL_TYPE} \
-  ${PORTS_LINE}-v ${VOLUME_HOME}/${NAME}/config:/tmp/config \
-  -v ${VOLUME_HOME}/${NAME}/data:/var/mail \
-  -v ${VOLUME_HOME}/${NAME}/log:/var/log/mail \
-  -v ${VOLUME_HOME}/certbot:/etc/certbot \
-  --hostname mail.${DOMAIN}
-  --name ${NAME} \
+ExecStart=/usr/bin/docker run \\
+  -e DISABLE_AMAVIS=${DISABLE_AMAVIS} \\
+  -e DISABLE_CLAMAV=${DISABLE_CLAMAV} \\
+  -e DISABLE_SPAMASSASSIN=${DISABLE_SPAMASSASSIN} \\
+  -e ENABLE_POP3=${ENABLE_POP3} \\
+  -e ENABLE_FAIL2BAN=${ENABLE_FAIL2BAN} \\
+  -e ENABLE_MANAGESIEVE=${ENABLE_MANAGESIEVE} \\
+  -e SA_TAG=${SA_TAG} \\
+  -e SA_TAG2=${SA_TAG2} \\
+  -e SA_KILL=${SA_KILL} \\
+  -e SASL_PASSWD=${SASL_PASSWD} \\
+  -e SMTP_ONLY=${SMTP_ONLY} \\
+  -e SSL_TYPE=${SSL_TYPE} \\
+  ${PORTS_LINE}-v ${VOLUME_HOME}/${NAME}/config:/tmp/config \\
+  -v ${VOLUME_HOME}/${NAME}/data:/var/mail \\
+  -v ${VOLUME_HOME}/${NAME}/log:/var/log/mail \\
+  -v ${VOLUME_HOME}/certbot:/etc/certbot \\
+  --cap-add=NET_ADMIN \\
+  --hostname mail.${DOMAIN} \\
+  --name ${NAME} \\
   madharjan/docker-mail:${VERSION}
 
 ExecStop=/usr/bin/docker stop -t 2 ${NAME}
